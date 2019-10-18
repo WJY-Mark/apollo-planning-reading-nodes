@@ -141,7 +141,7 @@ bool DPRoadGraph::GenerateMinCostPath(                       // 在DP RoadGraph�
       obstacles, vehicle_config.vehicle_param(), speed_data_, init_sl_point_);//TrajectoryCost类，用于计算各段五次多项式的cost，
   //注意把speed_data_输入进去了，作为“启发式”。 用于估计自车在未来的位置，从而考虑动态障碍物的cost
 
-  std::list<std::list<DPRoadGraphNode>> graph_nodes;//最终的前向遍历图，类似于神经网络 N个level，每个level一排node。
+  std::list<std::list<DPRoadGraphNode>> graph_nodes;//最终的前向遍历图，类似于神经网络 N个level，每个level一排node。（不含起点）
   graph_nodes.emplace_back();
   graph_nodes.back().emplace_back(init_sl_point_, nullptr, ComparableCost());
   auto &front = graph_nodes.front().front();
@@ -166,8 +166,8 @@ bool DPRoadGraph::GenerateMinCostPath(                       // 在DP RoadGraph�
             total_level, &trajectory_cost, &(front), &(cur_node))));
 
       } else {
-        UpdateNode(prev_dp_nodes, level, total_level, &trajectory_cost, &front,  //找节点的父亲，只取cost最小的。
-                   &cur_node);
+        UpdateNode(prev_dp_nodes, level, total_level, &trajectory_cost, &front,  //进入子函数 这个函数1.完成两层节点间的五次多项式连接
+                   &cur_node);                                                   //2.计算这段五次多项式的cost 3选最小的路径+父节点赋给当前node
       }
     }
 
@@ -177,7 +177,7 @@ bool DPRoadGraph::GenerateMinCostPath(                       // 在DP RoadGraph�
   }
 
   // find best path
-  DPRoadGraphNode fake_head;
+  DPRoadGraphNode fake_head;  //反向找到最佳路径
   for (const auto &cur_dp_node : graph_nodes.back()) {
     fake_head.UpdateCost(&cur_dp_node, cur_dp_node.min_cost_curve,
                          cur_dp_node.min_cost);
@@ -242,7 +242,7 @@ void DPRoadGraph::UpdateNode(const std::list<DPRoadGraphNode> &prev_nodes,
     const float init_ddl = init_frenet_frame_point_.ddl();
     QuinticPolynomialCurve1d curve(init_sl_point_.l(), init_dl, init_ddl,
                                    cur_node->sl_point.l(), 0.0, 0.0,
-                                   cur_node->sl_point.s() - init_sl_point_.s());
+                                   cur_node->sl_point.s() - init_sl_point_.s());//五次多项式，六个条件，认为重点侧向速度加速度=0。
     if (!IsValidCurve(curve)) {
       return;
     }
