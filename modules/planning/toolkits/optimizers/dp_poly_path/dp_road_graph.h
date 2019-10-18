@@ -81,7 +81,7 @@ class DPRoadGraph {
       if (cost <= min_cost) {
         min_cost = cost;
         min_cost_prev_node = node_prev;
-        min_cost_curve = curve;
+        min_cost_curve = curve; //存放的是连接 前一节点node_prev 和 当前节点 之间的五次多项式。
       }
     }
 
