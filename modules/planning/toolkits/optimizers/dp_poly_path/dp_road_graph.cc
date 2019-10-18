@@ -138,7 +138,8 @@ bool DPRoadGraph::GenerateMinCostPath(                       // 在DP RoadGraph�
 
   TrajectoryCost trajectory_cost(
       config_, reference_line_, reference_line_info_.IsChangeLanePath(),
-      obstacles, vehicle_config.vehicle_param(), speed_data_, init_sl_point_);
+      obstacles, vehicle_config.vehicle_param(), speed_data_, init_sl_point_);//TrajectoryCost类，用于计算各段五次多项式的cost，
+  //注意把speed_data_输入进去了，作为“启发式”。 用于估计自车在未来的位置，从而考虑动态障碍物的cost
 
   std::list<std::list<DPRoadGraphNode>> graph_nodes;//最终的前向遍历图，类似于神经网络 N个level，每个level一排node。
   graph_nodes.emplace_back();
