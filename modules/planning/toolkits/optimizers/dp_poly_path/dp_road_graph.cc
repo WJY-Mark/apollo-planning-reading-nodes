@@ -79,12 +79,12 @@ bool DPRoadGraph::FindPathTunnel(
     return false;
   }
 
-  std::vector<DPRoadGraphNode> min_cost_path;   // 最小路径的代价函数
-  if (!GenerateMinCostPath(obstacles, &min_cost_path)) {   // 产生最小代价的路径, 是不是这个函数就是特别关键的那个函数呢?
+  std::vector<DPRoadGraphNode> min_cost_path;   // 最小路径的代价函数 节点的vector
+  if (!GenerateMinCostPath(obstacles, &min_cost_path)) {   // 产生最小代价的路径,核心函数，最终输出节点的vector
     AERROR << "Fail to generate graph!";
     return false;
   }
-  std::vector<common::FrenetFramePoint> frenet_path;
+  std::vector<common::FrenetFramePoint> frenet_path;   //根据节点vector的五次多项式进行slice细分（间隔较小）
   float accumulated_s = init_sl_point_.s();
   const float path_resolution = config_.path_resolution();
 
