@@ -223,7 +223,8 @@ void DPRoadGraph::UpdateNode(const std::list<DPRoadGraphNode> &prev_nodes,
     }
     QuinticPolynomialCurve1d curve(prev_sl_point.l(), init_dl, init_ddl,
                                    cur_point.l(), 0.0, 0.0,
-                                   cur_point.s() - prev_sl_point.s());
+                                   cur_point.s() - prev_sl_point.s());//注意这里的五次多项式输入的是相对坐标，或者说每一段的长度。即cur_s-prev_s
+                                                                      //也就是说每个五次多项式都是从s=0开始的。
 
     if (!IsValidCurve(curve)) {
       continue;
