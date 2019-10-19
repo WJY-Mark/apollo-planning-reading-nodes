@@ -40,7 +40,7 @@ using apollo::common::math::Box2d;
 using apollo::common::math::Sigmoid;
 using apollo::common::math::Vec2d;
 
-TrajectoryCost::TrajectoryCost(
+TrajectoryCost::TrajectoryCost(       //初始化，除各变量赋值以外，还包括计算自车sl边界，静态障碍物sl边界，动态障碍物sl边界序列。
     const DpPolyPathConfig &config, const ReferenceLine &reference_line,
     const bool is_change_lane_path,
     const std::vector<const PathObstacle *> &obstacles,
@@ -88,7 +88,7 @@ TrajectoryCost::TrajectoryCost(
       continue;
     } else if (Obstacle::IsStaticObstacle(ptr_obstacle->Perception()) ||
                is_bycycle_or_pedestrian) {
-      static_obstacle_sl_boundaries_.push_back(std::move(sl_boundary));
+      static_obstacle_sl_boundaries_.push_back(std::move(sl_boundary));  //静态障碍物
     } else {
       std::vector<Box2d> box_by_time;
       for (uint32_t t = 0; t <= num_of_time_stamps_; ++t) {
@@ -100,9 +100,9 @@ TrajectoryCost::TrajectoryCost(
         Box2d expanded_obstacle_box =
             Box2d(obstacle_box.center(), obstacle_box.heading(),
                   obstacle_box.length() + kBuff, obstacle_box.width() + kBuff);
-        box_by_time.push_back(expanded_obstacle_box);
+        box_by_time.push_back(expanded_obstacle_box); //动态障碍物box的时间序列
       }
-      dynamic_obstacle_boxes_.push_back(std::move(box_by_time));
+      dynamic_obstacle_boxes_.push_back(std::move(box_by_time));//动态障碍物
     }
   }
 }
@@ -140,7 +140,7 @@ ComparableCost TrajectoryCost::CalculatePathCost(
     }
 
     const float dl = std::fabs(curve.Evaluate(1, curve_s));
-    path_cost += dl * dl * config_.path_dl_cost();
+    path_cost += dl * dl * config_.path_dl_cost();  //对每个离散点计算dl和ddl，并加权求和
 
     const float ddl = std::fabs(curve.Evaluate(2, curve_s));
     path_cost += ddl * ddl * config_.path_ddl_cost();
@@ -180,7 +180,7 @@ ComparableCost TrajectoryCost::CalculateDynamicObstacleCost(
        ++index, time_stamp += config_.eval_time_interval()) {
     common::SpeedPoint speed_point;
     heuristic_speed_data_.EvaluateByTime(time_stamp, &speed_point);
-    float ref_s = speed_point.s() + init_sl_point_.s();
+    float ref_s = speed_point.s() + init_sl_point_.s();      //根据启发式速度估计未来每个时间戳自车的s
     if (ref_s < start_s) {
       continue;
     }
@@ -189,14 +189,14 @@ ComparableCost TrajectoryCost::CalculateDynamicObstacleCost(
     }
 
     const float s = ref_s - start_s;  // s on spline curve
-    const float l = curve.Evaluate(0, s);
+    const float l = curve.Evaluate(0, s);  //根据五次多项式计算出每个时间戳的sl坐标
     const float dl = curve.Evaluate(1, s);
 
     const common::SLPoint sl = common::util::MakeSLPoint(ref_s, l);
     const Box2d ego_box = GetBoxFromSLPoint(sl, dl);
     for (const auto &obstacle_trajectory : dynamic_obstacle_boxes_) {
       obstacle_cost +=
-          GetCostBetweenObsBoxes(ego_box, obstacle_trajectory.at(index));
+          GetCostBetweenObsBoxes(ego_box, obstacle_trajectory.at(index));//根据自车box和动态障碍物box的sl关系计算cost
     }
   }
   constexpr float kDynamicObsWeight = 1e-6;
