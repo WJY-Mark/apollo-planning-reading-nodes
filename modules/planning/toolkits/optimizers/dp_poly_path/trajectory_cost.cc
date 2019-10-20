@@ -88,18 +88,18 @@ TrajectoryCost::TrajectoryCost(       //初始化，除各变量赋值以外，�
       continue;
     } else if (Obstacle::IsStaticObstacle(ptr_obstacle->Perception()) ||
                is_bycycle_or_pedestrian) {
-      static_obstacle_sl_boundaries_.push_back(std::move(sl_boundary));  //静态障碍物
+      static_obstacle_sl_boundaries_.push_back(std::move(sl_boundary));  //静态障碍物 根据sl坐标系下的boundary求cost。
     } else {
       std::vector<Box2d> box_by_time;
       for (uint32_t t = 0; t <= num_of_time_stamps_; ++t) {
         TrajectoryPoint trajectory_point =
             ptr_obstacle->GetPointAtTime(t * config.eval_time_interval());
 
-        Box2d obstacle_box = ptr_obstacle->GetBoundingBox(trajectory_point);
+        Box2d obstacle_box = ptr_obstacle->GetBoundingBox(trajectory_point);//动态障碍物 根据全局坐标系下的boundingbox求cost
         constexpr float kBuff = 0.5;
         Box2d expanded_obstacle_box =
             Box2d(obstacle_box.center(), obstacle_box.heading(),
-                  obstacle_box.length() + kBuff, obstacle_box.width() + kBuff);
+                  obstacle_box.length() + kBuff, obstacle_box.width() + kBuff);  //障碍物膨胀
         box_by_time.push_back(expanded_obstacle_box); //动态障碍物box的时间序列
       }
       dynamic_obstacle_boxes_.push_back(std::move(box_by_time));//动态障碍物
@@ -156,7 +156,7 @@ ComparableCost TrajectoryCost::CalculatePathCost(
   return cost;
 }
 
-ComparableCost TrajectoryCost::CalculateStaticObstacleCost(
+ComparableCost TrajectoryCost::CalculateStaticObstacleCost(   //注意静态障碍物的cost是在SL坐标系下衡量的
     const QuinticPolynomialCurve1d &curve, const float start_s,
     const float end_s) {
   ComparableCost obstacle_cost;
@@ -164,14 +164,14 @@ ComparableCost TrajectoryCost::CalculateStaticObstacleCost(
        curr_s += config_.path_resolution()) {
     const float curr_l = curve.Evaluate(0, curr_s - start_s);
     for (const auto &obs_sl_boundary : static_obstacle_sl_boundaries_) {
-      obstacle_cost += GetCostFromObsSL(curr_s, curr_l, obs_sl_boundary);
+      obstacle_cost += GetCostFromObsSL(curr_s, curr_l, obs_sl_boundary);//在SL坐标系（为啥不是全局？）下计算两个boundingbox的cost
     }
   }
   obstacle_cost.safety_cost *= config_.path_resolution();
   return obstacle_cost;
 }
 
-ComparableCost TrajectoryCost::CalculateDynamicObstacleCost(
+ComparableCost TrajectoryCost::CalculateDynamicObstacleCost(  //注意动态障碍物的cost是在XY全局坐标系下衡量的
     const QuinticPolynomialCurve1d &curve, const float start_s,
     const float end_s) const {
   ComparableCost obstacle_cost;
@@ -196,7 +196,7 @@ ComparableCost TrajectoryCost::CalculateDynamicObstacleCost(
     const Box2d ego_box = GetBoxFromSLPoint(sl, dl);
     for (const auto &obstacle_trajectory : dynamic_obstacle_boxes_) {
       obstacle_cost +=
-          GetCostBetweenObsBoxes(ego_box, obstacle_trajectory.at(index));//根据自车box和动态障碍物box的sl关系计算cost
+          GetCostBetweenObsBoxes(ego_box, obstacle_trajectory.at(index));//根据自车box和动态障碍物box的关系计算cost
     }
   }
   constexpr float kDynamicObsWeight = 1e-6;
@@ -274,7 +274,7 @@ ComparableCost TrajectoryCost::GetCostBetweenObsBoxes(
   return obstacle_cost;
 }
 
-Box2d TrajectoryCost::GetBoxFromSLPoint(const common::SLPoint &sl,
+Box2d TrajectoryCost::GetBoxFromSLPoint(const common::SLPoint &sl,  //从sl点得到全局坐标系下的box
                                         const float dl) const {
   Vec2d xy_point;
   reference_line_->SLToXY(sl, &xy_point);
