@@ -71,14 +71,14 @@ class ComparableCost {
       return -1;
     }
   }                                                                    // 重载各种操作符
-  ComparableCost operator+(const ComparableCost &other) {
+  ComparableCost operator+(const ComparableCost &other) {          // ComparableCost相加  +实际也用了+=
     ComparableCost lhs = *this;
     lhs += other;
     return lhs;
   }
-  ComparableCost &operator+=(const ComparableCost &other) {
-    for (size_t i = 0; i < cost_items.size(); ++i) {
-      cost_items[i] = (cost_items[i] || other.cost_items[i]);
+  ComparableCost &operator+=(const ComparableCost &other) {        //!!注意 此类相加时，不仅cost相加 其cost_items逻辑序列也按或逻辑继承
+    for (size_t i = 0; i < cost_items.size(); ++i) {               //原因在于例如轨迹上一个点发生了碰撞，则整条轨迹都相当于发生了碰撞
+      cost_items[i] = (cost_items[i] || other.cost_items[i]);      //碰撞这条逻辑应当被继承下去，并用于最终比较各条轨迹ComparableCost的大小
     }
     safety_cost += other.safety_cost;
     smoothness_cost += other.smoothness_cost;
@@ -105,7 +105,7 @@ class ComparableCost {
    *
    * NOTICE: Items could have same critical levels
    */
-  static const size_t HAS_COLLISION = 0;
+  static const size_t HAS_COLLISION = 0;   //ComparableCost有三个优先级状态，优先级从高到低，比较大小时，先比较这些状态，优先级一样才比较cost值。
   static const size_t OUT_OF_BOUNDARY = 1;
   static const size_t OUT_OF_LANE = 2;
   std::array<bool, 3> cost_items = {{false, false, false}};      // 代价函数的条目, 目前有三个代价函数(是否碰撞, 是否超出了边界, 是否超出了车道)
