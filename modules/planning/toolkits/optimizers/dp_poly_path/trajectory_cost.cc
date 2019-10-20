@@ -281,10 +281,10 @@ Box2d TrajectoryCost::GetBoxFromSLPoint(const common::SLPoint &sl,
 
   ReferencePoint reference_point = reference_line_->GetReferencePoint(sl.s());
 
-  const float one_minus_kappa_r_d = 1 - reference_point.kappa() * sl.l();
+  const float one_minus_kappa_r_d = 1 - reference_point.kappa() * sl.l();  //参考werling附录(6) d'=[1-kr*d]tan(△θ) 
   const float delta_theta = std::atan2(dl, one_minus_kappa_r_d);
   const float theta =
-      common::math::NormalizeAngle(delta_theta + reference_point.heading());
+      common::math::NormalizeAngle(delta_theta + reference_point.heading());//全局坐标系下的航向角
   return Box2d(xy_point, theta, vehicle_param_.length(),
                vehicle_param_.width());
 }
