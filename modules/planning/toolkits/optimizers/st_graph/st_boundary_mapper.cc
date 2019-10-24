@@ -347,13 +347,13 @@ bool StBoundaryMapper::GetOverlapBoundaryPoints(
             << obstacle.Perception().ShortDebugString();
     }
     for (const auto& curr_point_on_path : path_points) {
-      if (curr_point_on_path.s() > planning_distance_) {
+      if (curr_point_on_path.s() > planning_distance_) { //超过st图的s量程 break 结束
         break;
       }
       const Box2d obs_box = obstacle.PerceptionBoundingBox();
 
       if (CheckOverlap(curr_point_on_path, obs_box,
-                       st_boundary_config_.boundary_buffer())) {
+                       st_boundary_config_.boundary_buffer())) {  //检测与本车box是否有重叠
         const double backward_distance = -vehicle_param_.front_edge_to_center();
         const double forward_distance = vehicle_param_.length() +
                                         vehicle_param_.width() +
@@ -522,7 +522,7 @@ bool StBoundaryMapper::CheckOverlap(const PathPoint& path_point,
                                     const double buffer) const {
   double left_delta_l = 0.0;
   double right_delta_l = 0.0;
-  if (is_change_lane_) {
+  if (is_change_lane_) {    //这个车道和当前汽车所在车道是否为同一车道（即是否需要换道）
     if ((adc_sl_boundary_.start_l() + adc_sl_boundary_.end_l()) / 2.0 > 0.0) {
       // change to right
       left_delta_l = 1.0;
