@@ -346,7 +346,7 @@ bool StBoundaryMapper::GetOverlapBoundaryPoints(
             << "] has NO prediction trajectory."
             << obstacle.Perception().ShortDebugString();
     }
-    for (const auto& curr_point_on_path : path_points) {
+    for (const auto& curr_point_on_path : path_points) { //遍历sl坐标系下规划完的路径点
       if (curr_point_on_path.s() > planning_distance_) { //超过st图的s量程 break 结束
         break;
       }
