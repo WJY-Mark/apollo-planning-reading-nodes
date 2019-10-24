@@ -74,7 +74,7 @@ StBoundaryMapper::StBoundaryMapper(const SLBoundary& adc_sl_boundary,
       is_change_lane_(is_change_lane) {}
 
 Status StBoundaryMapper::CreateStBoundary(PathDecision* path_decision) const {
-  const auto& path_obstacles = path_decision->path_obstacles();
+  const auto& path_obstacles = path_decision->path_obstacles(); //从pathdecision取出path_obstacle(该类有参考路径信息)（IndexedList）
 
   if (planning_time_ < 0.0) {
     const std::string msg = "Fail to get params since planning_time_ < 0.";
@@ -94,7 +94,7 @@ Status StBoundaryMapper::CreateStBoundary(PathDecision* path_decision) const {
   ObjectDecisionType stop_decision;
   double min_stop_s = std::numeric_limits<double>::max();
 
-  for (const auto* const_path_obstacle : path_obstacles.Items()) {
+  for (const auto* const_path_obstacle : path_obstacles.Items()) { //对障碍物遍历
     auto* path_obstacle = path_decision->Find(const_path_obstacle->Id());
     if (!path_obstacle->HasLongitudinalDecision()) {
       if (!MapWithoutDecision(path_obstacle).ok()) {
