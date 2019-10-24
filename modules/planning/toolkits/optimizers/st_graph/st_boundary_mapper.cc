@@ -69,8 +69,8 @@ StBoundaryMapper::StBoundaryMapper(const SLBoundary& adc_sl_boundary,
       reference_line_(reference_line),
       path_data_(path_data),
       vehicle_param_(common::VehicleConfigHelper::GetConfig().vehicle_param()),
-      planning_distance_(planning_distance),
-      planning_time_(planning_time),
+      planning_distance_(planning_distance),   //st 图的s量程
+      planning_time_(planning_time),           //st 图的t量程
       is_change_lane_(is_change_lane) {}
 
 Status StBoundaryMapper::CreateStBoundary(PathDecision* path_decision) const {
