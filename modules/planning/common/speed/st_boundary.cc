@@ -66,7 +66,7 @@ StBoundary::StBoundary(
 }
 
 bool StBoundary::IsPointNear(const common::math::LineSegment2d& seg,
-                             const Vec2d& point, const double max_dist) {
+                             const Vec2d& point, const double max_dist) {  //判断点到线段的距离是否过小，过小则说明为冗余点，返回true
   return seg.DistanceSquareTo(point) < max_dist * max_dist;
 }
 
@@ -90,7 +90,7 @@ std::string StBoundary::TypeName(BoundaryType type) {
 }
 // 删除冗余点
 void StBoundary::RemoveRedundantPoints(
-    std::vector<std::pair<STPoint, STPoint>>* point_pairs) {  // 将离散的点组成线段
+    std::vector<std::pair<STPoint, STPoint>>* point_pairs) {  // pair组成的vector，st图上的上边界点+下边界点组成一个pair
   if (!point_pairs || point_pairs->size() <= 2) {  // 容错处理
     return;
   }
@@ -98,14 +98,15 @@ void StBoundary::RemoveRedundantPoints(
   const double kMaxDist = 0.1;  // 最大的距离
   size_t i = 0;
   size_t j = 1;
-
+  //核心程序!!!!!!!!!!!!!!!!!!!!  思想有点像leetcode里面的remove elements，即vector的remove函数。用双指针实现。
   while (i < point_pairs->size() && j + 1 < point_pairs->size()) {
     LineSegment2d lower_seg(point_pairs->at(i).first,
-                            point_pairs->at(j + 1).first); // 二维的线段
+                            point_pairs->at(j + 1).first); // 二维的线段  连接st图中平行四边形的下边界
     LineSegment2d upper_seg(point_pairs->at(i).second,
-                            point_pairs->at(j + 1).second);
-    if (!IsPointNear(lower_seg, point_pairs->at(j).first, kMaxDist) ||
-        !IsPointNear(upper_seg, point_pairs->at(j).second, kMaxDist)) {  // 都相近
+                            point_pairs->at(j + 1).second);// 二维的线段  连接st图中平行四边形的上边界
+    if (!IsPointNear(lower_seg, point_pairs->at(j).first, kMaxDist) ||  //IsPointNear函数判断第j个点与 i和j+1个点连成的线的距离是否很近，
+        !IsPointNear(upper_seg, point_pairs->at(j).second, kMaxDist)) {  //若upper和lower的IsPointNear都是true，则为冗余pair，i不动，j++
+        // upper和lower有任何一个不相近，则说明第j个pair并非冗余，因此i++，并把这个pair移动到第i个位置。最后结束时，一共有i+1个非冗余点。
       ++i;   // 如果相邻就不会更新i的值
       if (i != j) {
         point_pairs->at(i) = point_pairs->at(j);
