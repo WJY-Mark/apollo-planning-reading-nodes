@@ -324,7 +324,7 @@ Status StBoundaryMapper::MapWithoutDecision(PathObstacle* path_obstacle) const {
   return Status::OK();
 }
 
-bool StBoundaryMapper::GetOverlapBoundaryPoints(
+bool StBoundaryMapper::GetOverlapBoundaryPoints(     //map一个障碍物
     const std::vector<PathPoint>& path_points, const Obstacle& obstacle,
     std::vector<STPoint>* upper_points,
     std::vector<STPoint>* lower_points) const {
@@ -340,7 +340,7 @@ bool StBoundaryMapper::GetOverlapBoundaryPoints(
   }
 
   const auto& trajectory = obstacle.Trajectory();
-  if (trajectory.trajectory_point_size() == 0) {
+  if (trajectory.trajectory_point_size() == 0) { //静态障碍物  轨迹点数量为0
     if (!obstacle.IsStatic()) {
       AWARN << "Non-static obstacle[" << obstacle.Id()
             << "] has NO prediction trajectory."
@@ -353,7 +353,7 @@ bool StBoundaryMapper::GetOverlapBoundaryPoints(
       const Box2d obs_box = obstacle.PerceptionBoundingBox();
 
       if (CheckOverlap(curr_point_on_path, obs_box,
-                       st_boundary_config_.boundary_buffer())) {  //检测与本车box是否有重叠
+                       st_boundary_config_.boundary_buffer())) {  //检测与本车box是否有重叠 CheckOverlap函数实际也是调用box2d类判断重合的类方法
         const double backward_distance = -vehicle_param_.front_edge_to_center();
         const double forward_distance = vehicle_param_.length() +
                                         vehicle_param_.width() +
@@ -363,13 +363,13 @@ bool StBoundaryMapper::GetOverlapBoundaryPoints(
         double high_s = std::fmin(planning_distance_,
                                   curr_point_on_path.s() + forward_distance);
         lower_points->emplace_back(low_s, 0.0);
-        lower_points->emplace_back(low_s, planning_time_);
+        lower_points->emplace_back(low_s, planning_time_);//动态障碍物不会动，所以整个时间量程都有
         upper_points->emplace_back(high_s, 0.0);
         upper_points->emplace_back(high_s, planning_time_);
         break;
       }
     }
-  } else {
+  } else {       //动态障碍物
     const int default_num_point = 50;
     DiscretizedPath discretized_path;
     if (path_points.size() > 2 * default_num_point) {
@@ -384,7 +384,7 @@ bool StBoundaryMapper::GetOverlapBoundaryPoints(
     } else {
       discretized_path.set_path_points(path_points);
     }
-    for (int i = 0; i < trajectory.trajectory_point_size(); ++i) {
+    for (int i = 0; i < trajectory.trajectory_point_size(); ++i) { //遍历障碍物轨迹点
       const auto& trajectory_point = trajectory.trajectory_point(i);
       const Box2d obs_box = obstacle.GetBoundingBox(trajectory_point);
 
@@ -394,8 +394,8 @@ bool StBoundaryMapper::GetOverlapBoundaryPoints(
         continue;
       }
 
-      const double step_length = vehicle_param_.front_edge_to_center();
-      for (double path_s = 0.0; path_s < discretized_path.Length();
+      const double step_length = vehicle_param_.front_edge_to_center(); //行车路径分辨率 
+      for (double path_s = 0.0; path_s < discretized_path.Length(); //遍历自车的行车路径点 
            path_s += step_length) {
         const auto curr_adc_path_point = discretized_path.Evaluate(
             path_s + discretized_path.StartPoint().s());
@@ -408,14 +408,14 @@ bool StBoundaryMapper::GetOverlapBoundaryPoints(
                                           obs_box.length() + obs_box.width();
           const double default_min_step = 0.1;  // in meters
           const double fine_tuning_step_length = std::fmin(
-              default_min_step, discretized_path.Length() / default_num_point);
+              default_min_step, discretized_path.Length() / default_num_point); //寻找精确low_s&high_s步步逼近的步长
 
           bool find_low = false;
           bool find_high = false;
           double low_s = std::fmax(0.0, path_s + backward_distance);
           double high_s =
               std::fmin(discretized_path.Length(), path_s + forward_distance);
-
+         //步步紧靠，构造更加紧凑的上下界low_s和high_s
           while (low_s < high_s) {
             if (find_low && find_high) {
               break;
