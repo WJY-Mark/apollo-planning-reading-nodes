@@ -37,7 +37,7 @@ StBoundary::StBoundary(
   CHECK(IsValid(point_pairs)) << "The input point_pairs are NOT valid";
 
   std::vector<std::pair<STPoint, STPoint>> reduced_pairs(point_pairs);
-  RemoveRedundantPoints(&reduced_pairs);
+  RemoveRedundantPoints(&reduced_pairs);//去除冗余点
 
   for (const auto& item : reduced_pairs) {
     // use same t for both points
@@ -377,7 +377,7 @@ StBoundary StBoundary::GenerateStBoundary(
         STPoint(lower_points.at(i).s(), lower_points.at(i).t()),
         STPoint(upper_points.at(i).s(), upper_points.at(i).t()));
   }
-  return StBoundary(point_pairs);
+  return StBoundary(point_pairs);  //构造函数里面有去除冗余点的功能
 }
 
 StBoundary StBoundary::CutOffByT(const double t) const {
