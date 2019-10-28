@@ -489,7 +489,7 @@ Status StBoundaryMapper::MapWithDecision(
 
   auto boundary = StBoundary::GenerateStBoundary(lower_points, upper_points)
                       .ExpandByS(boundary_s_buffer)
-                      .ExpandByT(boundary_t_buffer);
+                      .ExpandByT(boundary_t_buffer);  //有去除冗余点的功能 详情见StBoundary::RemoveRedundantPoints
 
   // get characteristic_length and boundary_type.
   StBoundary::BoundaryType b_type = StBoundary::BoundaryType::UNKNOWN;
