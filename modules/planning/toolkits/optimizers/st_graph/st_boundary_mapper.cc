@@ -326,8 +326,8 @@ Status StBoundaryMapper::MapWithoutDecision(PathObstacle* path_obstacle) const {
 
 bool StBoundaryMapper::GetOverlapBoundaryPoints(     //map一个障碍物
     const std::vector<PathPoint>& path_points, const Obstacle& obstacle,
-    std::vector<STPoint>* upper_points,
-    std::vector<STPoint>* lower_points) const {
+    std::vector<STPoint>* upper_points,     //ST图平行四边形的上边界点
+    std::vector<STPoint>* lower_points) const { //ST图平行四边形的下边界点
   DCHECK_NOTNULL(upper_points);
   DCHECK_NOTNULL(lower_points);
   DCHECK(upper_points->empty());
@@ -363,7 +363,7 @@ bool StBoundaryMapper::GetOverlapBoundaryPoints(     //map一个障碍物
         double high_s = std::fmin(planning_distance_,
                                   curr_point_on_path.s() + forward_distance);
         lower_points->emplace_back(low_s, 0.0);
-        lower_points->emplace_back(low_s, planning_time_);//动态障碍物不会动，所以整个时间量程都有
+        lower_points->emplace_back(low_s, planning_time_);//静态障碍物不会动，所以整个时间量程都有
         upper_points->emplace_back(high_s, 0.0);
         upper_points->emplace_back(high_s, planning_time_);
         break;
