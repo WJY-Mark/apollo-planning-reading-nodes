@@ -42,15 +42,15 @@ StBoundary::StBoundary(
   for (const auto& item : reduced_pairs) {
     // use same t for both points
     const double t = item.first.t();
-    lower_points_.emplace_back(item.first.s(), t);
-    upper_points_.emplace_back(item.second.s(), t);
+    lower_points_.emplace_back(item.first.s(), t);//pair的第一个元素的s
+    upper_points_.emplace_back(item.second.s(), t);//pair的第二个元素的s
   }
-
+//下面 从平行四边形的左下角开始 沿逆时针方向 将点push到points_中
   for (auto it = lower_points_.begin(); it != lower_points_.end(); ++it) {
-    points_.emplace_back(it->x(), it->y());
+    points_.emplace_back(it->x(), it->y()); //points_是Polygon2d的类成员
   }
   for (auto rit = upper_points_.rbegin(); rit != upper_points_.rend(); ++rit) {
-    points_.emplace_back(rit->x(), rit->y());
+    points_.emplace_back(rit->x(), rit->y());//注意顺序 这里是rbegin rend
   }
 
   BuildFromPoints();
