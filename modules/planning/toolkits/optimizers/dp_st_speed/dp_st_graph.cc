@@ -82,11 +82,13 @@ DpStGraph::DpStGraph(const StGraphData& st_graph_data,
 }
 
 Status DpStGraph::Search(SpeedData* const speed_data) {
+  //每个low_s,high_s以及他们生成的stboundary是从0开始的。也就是说 后续的st图search的原点坐标为(0,0)，详细见st_boundary_mapper.cc，搜索path_s
   constexpr float kBounadryEpsilon = 1e-2;
   for (const auto& boundary : st_graph_data_.st_boundaries()) {
     if (boundary->boundary_type() == StBoundary::BoundaryType::KEEP_CLEAR) {
       continue;
     }
+    //检验初始状态（如起点是否已经撞到了障碍物） 若状态异常则目标位移设为0制动
     if (boundary->IsPointInBoundary({0.0, 0.0}) ||
         (std::fabs(boundary->min_t()) < kBounadryEpsilon &&
          std::fabs(boundary->min_s()) < kBounadryEpsilon)) {
@@ -94,8 +96,8 @@ Status DpStGraph::Search(SpeedData* const speed_data) {
       float t = 0.0;
       for (int i = 0; i < dp_st_speed_config_.matrix_dimension_t();
            ++i, t += unit_t_) {
-        SpeedPoint speed_point;
-        speed_point.set_s(0.0);
+        SpeedPoint speed_point;//成员包括 s t v a da
+        speed_point.set_s(0.0);//状态异常，进行制动
         speed_point.set_t(t);
         speed_profile.emplace_back(speed_point);
       }
@@ -151,13 +153,13 @@ Status DpStGraph::InitCostTable() {
   DCHECK_GT(dim_t, 2);
   cost_table_ = std::vector<std::vector<StGraphPoint>>(
       dim_t, std::vector<StGraphPoint>(dim_s, StGraphPoint()));
-
+//构造st图，dimt行，dims列，每个元素都是StgraphPoint，然后两个for循环对其初始化
   float curr_t = 0.0;
   for (uint32_t i = 0; i < cost_table_.size(); ++i, curr_t += unit_t_) {
     auto& cost_table_i = cost_table_[i];
     float curr_s = 0.0;
     for (uint32_t j = 0; j < cost_table_i.size(); ++j, curr_s += unit_s_) {
-      cost_table_i[j].Init(i, j, STPoint(curr_s, curr_t));
+      cost_table_i[j].Init(i, j, STPoint(curr_s, curr_t));//初始化
     }
   }
   return Status::OK();

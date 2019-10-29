@@ -128,6 +128,7 @@ class StBoundary : public common::math::Polygon2d {
 
   std::string id_;
   double characteristic_length_ = 1.0;               // 特征长度
+  //characteristic_length特征长度 不同决策有不同的特征长度 详见st_boundary_mapper.cc
   double s_high_limit_ = 200.0;                      // 限速
   double min_s_ = std::numeric_limits<double>::max();
   double max_s_ = std::numeric_limits<double>::lowest();

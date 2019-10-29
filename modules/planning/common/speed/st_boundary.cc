@@ -263,7 +263,7 @@ void StBoundary::SetId(const std::string& id) { id_ = id; }
 double StBoundary::characteristic_length() const {
   return characteristic_length_;
 }
-
+//characteristic_length特征长度 不同决策有不同的特征长度 详见st_boundary_mapper.cc
 void StBoundary::SetCharacteristicLength(const double characteristic_length) {
   characteristic_length_ = characteristic_length;
 }
@@ -380,12 +380,12 @@ StBoundary StBoundary::GenerateStBoundary(
   return StBoundary(point_pairs);  //构造函数里面有去除冗余点的功能
 }
 
-StBoundary StBoundary::CutOffByT(const double t) const {
+StBoundary StBoundary::CutOffByT(const double t) const {  //砍掉0~t的所有mapping
   std::vector<STPoint> lower_points;
   std::vector<STPoint> upper_points;
   for (size_t i = 0; i < lower_points_.size() && i < upper_points_.size();
        ++i) {
-    if (lower_points_[i].t() < t) {
+    if (lower_points_[i].t() < t) { //砍掉0~t的所有mapping
       continue;
     }
     lower_points.push_back(lower_points_[i]);

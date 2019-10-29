@@ -467,7 +467,7 @@ bool StBoundaryMapper::GetOverlapBoundaryPoints( //map一个障碍物
       }
 
       const double step_length = vehicle_param_.front_edge_to_center(); //行车路径分辨率
-      for (double path_s = 0.0; path_s < discretized_path.Length();     //遍历自车的行车路径点
+      for (double path_s = 0.0; path_s < discretized_path.Length();     //遍历自车的行车路径点，注意！！这里path_s是自车坐标系的相对坐标，从0开始，从而每个low_s,high_s以及他们生成的stboundary也是从0开始的。也就是说 后续的st图search的原点坐标为(0,0)
            path_s += step_length)
       {
         const auto curr_adc_path_point = discretized_path.Evaluate(
@@ -579,7 +579,8 @@ Status StBoundaryMapper::MapWithDecision(
                       .ExpandByS(boundary_s_buffer)
                       .ExpandByT(boundary_t_buffer); //有去除冗余点的功能 详情见StBoundary::RemoveRedundantPoints
 
-  // get characteristic_length and boundary_type.
+  // get characteristic_length and boundary_type.  
+  //characteristic_length特征长度 不同决策有不同的特征长度
   StBoundary::BoundaryType b_type = StBoundary::BoundaryType::UNKNOWN;
   double characteristic_length = 0.0;
   if (decision.has_follow())
