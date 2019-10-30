@@ -115,12 +115,14 @@ float DpStCost::GetObstacleCost(const StGraphPoint& st_graph_point) {
 
     auto boundary = obstacle->st_boundary();
     const float kIgnoreDistance = 200.0;
+    //先考虑特殊情况 看障碍物的stboundary是否过远可忽略（即这个单一障碍物cost=0）
     if (boundary.min_s() > kIgnoreDistance) {
       continue;
     }
     if (t < boundary.min_t() || t > boundary.max_t()) {
       continue;
     }
+    //节点在stboundary内部 cost=inf
     if (obstacle->IsBlockingObstacle() &&
         boundary.IsPointInBoundary(STPoint(s, t))) {
       return kInf;

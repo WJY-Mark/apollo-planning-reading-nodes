@@ -147,8 +147,8 @@ Status DpStGraph::Search(SpeedData* const speed_data) {
 }
 
 Status DpStGraph::InitCostTable() {
-  uint32_t dim_s = dp_st_speed_config_.matrix_dimension_s();
-  uint32_t dim_t = dp_st_speed_config_.matrix_dimension_t();
+  uint32_t dim_s = dp_st_speed_config_.matrix_dimension_s();//150m
+  uint32_t dim_t = dp_st_speed_config_.matrix_dimension_t();//8s
   DCHECK_GT(dim_s, 2);
   DCHECK_GT(dim_t, 2);
   cost_table_ = std::vector<std::vector<StGraphPoint>>(
@@ -171,7 +171,8 @@ Status DpStGraph::CalculateTotalCost() {
   // s corresponding to row
   uint32_t next_highest_row = 0;
   uint32_t next_lowest_row = 0;
-
+  //c 代表st图中的t，r代表st图中的s 最外层的for循环用c遍历t，内层for循环用r遍历s。
+  //c和r实际是ST图考虑resolution后的坐标，实际s=c*unit_s 实际t=r*unit_t
   for (size_t c = 0; c < cost_table_.size(); ++c) {
     int highest_row = 0;
     int lowest_row = cost_table_.back().size() - 1;
@@ -244,7 +245,10 @@ void DpStGraph::GetRowRange(const StGraphPoint& point, int* next_highest_row,
 }
 
 void DpStGraph::CalculateCostAt(const uint32_t c, const uint32_t r) {
-  auto& cost_cr = cost_table_[c][r];
+  //解析解析解析注意注意注意！
+  //函数1.先计算t s坐标为[c][r]的节点的obscost，   2.分成c=0，c=1,c=2 用dp算法遍历父节点的cost+edgecost，取最小的为父节点。之所以分类是因为在计算edgecost时 需要计算加速度和jerk，而这些量需要用到前一到两列的节点。
+  auto& cost_cr = cost_table_[c][r];//cost_cr为坐标为c(t)，r(s)的StGraphPoint
+  //先计算当前点的obstacle_cost
   cost_cr.SetObstacleCost(dp_st_cost_.GetObstacleCost(cost_cr));
   if (cost_cr.obstacle_cost() > std::numeric_limits<float>::max()) {
     return;
@@ -260,6 +264,7 @@ void DpStGraph::CalculateCostAt(const uint32_t c, const uint32_t r) {
   float speed_limit =
       st_graph_data_.speed_limit().GetSpeedLimitByS(unit_s_ * r);
   if (c == 1) {
+    //t=1时，加速度限值检测，用st图中的s/t求到达当前节点平均速度v1，再减起始节点速度v0。(v1-v0)/t
     const float acc = (r * unit_s_ / unit_t_ - init_point_.v()) / unit_t_;
     if (acc < dp_st_speed_config_.max_deceleration() ||
         acc > dp_st_speed_config_.max_acceleration()) {
@@ -268,10 +273,10 @@ void DpStGraph::CalculateCostAt(const uint32_t c, const uint32_t r) {
 
     if (CheckOverlapOnDpStGraph(st_graph_data_.st_boundaries(), cost_cr,
                                 cost_init)) {
-      return;
+      return;//检验连线和stboundaries的相交情况
     }
     cost_cr.SetTotalCost(cost_cr.obstacle_cost() + cost_init.total_cost() +
-                         CalculateEdgeCostForSecondCol(r, speed_limit));
+                         CalculateEdgeCostForSecondCol(r, speed_limit));//EdgeCost 代表的是前一节点到当前节点的jerkcost，加速度cost等
     cost_cr.SetPrePoint(cost_init);
     return;
   }
@@ -283,9 +288,9 @@ void DpStGraph::CalculateCostAt(const uint32_t c, const uint32_t r) {
   const uint32_t r_low = (max_s_diff < r ? r - max_s_diff : 0);
 
   const auto& pre_col = cost_table_[c - 1];
-
+//计算cost[c][r]时，用dp算法遍历其可能的父节点们，这些父节点在pre_col中（t一定是c-1时刻），s遍历范围为r_low至r。
   if (c == 2) {
-    for (uint32_t r_pre = r_low; r_pre <= r; ++r_pre) {
+    for (uint32_t r_pre = r_low; r_pre <= r; ++r_pre) {//s遍历范围为r_low至r。
       const float acc =
           (r * unit_s_ - 2 * r_pre * unit_s_) / (unit_t_ * unit_t_);
       if (acc < dp_st_speed_config_.max_deceleration() ||
@@ -301,19 +306,19 @@ void DpStGraph::CalculateCostAt(const uint32_t c, const uint32_t r) {
       const float cost = cost_cr.obstacle_cost() + pre_col[r_pre].total_cost() +
                          CalculateEdgeCostForThirdCol(r, r_pre, speed_limit);
 
-      if (cost < cost_cr.total_cost()) {
+      if (cost < cost_cr.total_cost()) {//dp算法，取cost最小的为父节点
         cost_cr.SetTotalCost(cost);
-        cost_cr.SetPrePoint(pre_col[r_pre]);
+        cost_cr.SetPrePoint(pre_col[r_pre]);//dp算法，取cost最小的为父节点
       }
     }
     return;
   }
-  for (uint32_t r_pre = r_low; r_pre <= r; ++r_pre) {
+  for (uint32_t r_pre = r_low; r_pre <= r; ++r_pre) {//s遍历范围为r_low至r。
     if (std::isinf(pre_col[r_pre].total_cost()) ||
         pre_col[r_pre].pre_point() == nullptr) {
       continue;
     }
-
+    //加速度检测
     const float curr_a = (cost_cr.index_s() * unit_s_ +
                           pre_col[r_pre].pre_point()->index_s() * unit_s_ -
                           2 * pre_col[r_pre].index_s() * unit_s_) /
@@ -322,13 +327,14 @@ void DpStGraph::CalculateCostAt(const uint32_t c, const uint32_t r) {
         curr_a < vehicle_param_.max_deceleration()) {
       continue;
     }
+    //本节点和父节点连线 与 stboundaries的相交情况
     if (CheckOverlapOnDpStGraph(st_graph_data_.st_boundaries(), cost_cr,
                                 pre_col[r_pre])) {
       continue;
     }
 
     uint32_t r_prepre = pre_col[r_pre].pre_point()->index_s();
-    const StGraphPoint& prepre_graph_point = cost_table_[c - 2][r_prepre];
+    const StGraphPoint& prepre_graph_point = cost_table_[c - 2][r_prepre];//父节点的父节点
     if (std::isinf(prepre_graph_point.total_cost())) {
       continue;
     }
@@ -336,7 +342,7 @@ void DpStGraph::CalculateCostAt(const uint32_t c, const uint32_t r) {
     if (!prepre_graph_point.pre_point()) {
       continue;
     }
-    const STPoint& triple_pre_point = prepre_graph_point.pre_point()->point();
+    const STPoint& triple_pre_point = prepre_graph_point.pre_point()->point();//父节点的父节点的父节点   用于计算EdgeCost （包括jerkcost，加速度cost等）
     const STPoint& prepre_point = prepre_graph_point.point();
     const STPoint& pre_point = pre_col[r_pre].point();
     const STPoint& curr_point = cost_cr.point();
