@@ -104,11 +104,12 @@ bool DpStCost::InKeepClearRange(float s) const {
 }
 
 float DpStCost::GetObstacleCost(const StGraphPoint& st_graph_point) {
+  //获得某个节点的obs_cost
   const float s = st_graph_point.point().s();
   const float t = st_graph_point.point().t();
 
   float cost = 0.0;
-  for (const auto* obstacle : obstacles_) {
+  for (const auto* obstacle : obstacles_) {//遍历PathObstacles 注意用法！！这里不是auto而是auto*
     if (!obstacle->IsBlockingObstacle()) {
       continue;
     }
@@ -131,26 +132,28 @@ float DpStCost::GetObstacleCost(const StGraphPoint& st_graph_point) {
     double s_lower = 0.0;
 
     int boundary_index = boundary_map_[boundary.id()];
-    if (boundary_cost_[boundary_index][st_graph_point.index_t()].first < 0.0) {
-      boundary.GetBoundarySRange(t, &s_upper, &s_lower);
+    if (boundary_cost_[boundary_index][st_graph_point.index_t()].first < 0.0) {//一个表格，boundary_cost_[i][j]=make_pair(s_upper,s_lower) 含义为ST图中，标号id为i的stboundary，在时间坐标为j时，对应的平行四边形上下界为s_upper和s_lower
+
+      boundary.GetBoundarySRange(t, &s_upper, &s_lower); //本函数利用插值的方法（因为stboundary实质是离散点围成的polygon），t=curr_time时，平行四边形的上下边界点。
+
       boundary_cost_[boundary_index][st_graph_point.index_t()] =
           std::make_pair(s_upper, s_lower);
     } else {
       s_upper = boundary_cost_[boundary_index][st_graph_point.index_t()].first;
       s_lower = boundary_cost_[boundary_index][st_graph_point.index_t()].second;
     }
-    if (s < s_lower) {
+    if (s < s_lower) {//该点在平行四边形下边界的下方
       constexpr float kSafeTimeBuffer = 3.0;
       const float len = obstacle->obstacle()->Speed() * kSafeTimeBuffer;
-      if (s + len < s_lower) {
+      if (s + len < s_lower) {//若在下边界以下很远的地方，则cost忽略不计
         continue;
       } else {
         cost += config_.obstacle_weight() * config_.default_obstacle_cost() *
                 std::pow((len - s_lower + s), 2);
       }
-    } else if (s > s_upper) {
+    } else if (s > s_upper) {//该点在平行四边形上边界的上方
       const float kSafeDistance = 20.0;  // or calculated from velocity
-      if (s > s_upper + kSafeDistance) {
+      if (s > s_upper + kSafeDistance) {//若在上边界以上很远的地方，则cost忽略不计
         continue;
       } else {
         cost += config_.obstacle_weight() * config_.default_obstacle_cost() *

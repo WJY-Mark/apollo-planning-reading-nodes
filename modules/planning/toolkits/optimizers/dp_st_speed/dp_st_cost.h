@@ -83,8 +83,7 @@ class DpStCost {
   float unit_t_ = 0.0;
 
   std::unordered_map<std::string, int> boundary_map_;
-  std::vector<std::vector<std::pair<float, float>>> boundary_cost_;
-
+  std::vector<std::vector<std::pair<float, float>>> boundary_cost_;//一个表格，boundary_cost_[i][j]=make_pair(s_upper,s_lower) 含义为ST图中，标号id为i的stboundary，在时间坐标为j时，对应的平行四边形上下界为s_upper和s_lower
   std::vector<std::pair<float, float>> keep_clear_range_;
 
   std::array<float, 200> accel_cost_;

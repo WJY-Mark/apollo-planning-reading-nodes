@@ -106,7 +106,7 @@ Status DpStGraph::Search(SpeedData* const speed_data) {
     }
   }
 
-  if (st_graph_data_.st_boundaries().empty()) {
+  if (st_graph_data_.st_boundaries().empty()) {//ST图中无任何障碍物，输出默认速度
     ADEBUG << "No path obstacles, dp_st_graph output default speed profile.";
     std::vector<SpeedPoint> speed_profile;
     float s = 0.0;
@@ -186,7 +186,7 @@ Status DpStGraph::CalculateTotalCost() {
           futures.push_back(ThreadPool::pool()->push(
               std::bind(&DpStGraph::CalculateCostAt, this, c, r)));
         } else {
-          CalculateCostAt(c, r);
+          CalculateCostAt(c, r);//根据dp算法，找到坐标为(t=c,s=r)的点的父节点，并计算到达（c,r）的最小cost。
         }
       }
 
@@ -200,8 +200,8 @@ Status DpStGraph::CalculateTotalCost() {
       if (cost_cr.total_cost() < std::numeric_limits<float>::infinity()) {
         int h_r = 0;
         int l_r = 0;
-        GetRowRange(cost_cr, &h_r, &l_r);
-        highest_row = std::max(highest_row, h_r);
+        GetRowRange(cost_cr, &h_r, &l_r);//用于下一循环（c=c+1）确定遍历s的范围 
+        highest_row = std::max(highest_row, h_r);//这个变量应该叫next_highest_row（相应的，next_highest_row改为highest_row）比较好理解
         lowest_row = std::min(lowest_row, l_r);
       }
     }
@@ -213,13 +213,13 @@ Status DpStGraph::CalculateTotalCost() {
 }
 
 void DpStGraph::GetRowRange(const StGraphPoint& point, int* next_highest_row,
-                            int* next_lowest_row) {
+                            int* next_lowest_row) { //根据已经确定完cost和父节点的某个point，根据加速度极限和point的速度确定下一循环遍历的s的范围
   float v0 = 0.0;
   if (!point.pre_point()) {
     v0 = init_point_.v();
   } else {
     v0 = (point.index_s() - point.pre_point()->index_s()) * unit_s_ / unit_t_;
-  }
+  }//计算当前节点速度
 
   const int max_s_size = cost_table_.back().size() - 1;
 
@@ -245,16 +245,18 @@ void DpStGraph::GetRowRange(const StGraphPoint& point, int* next_highest_row,
 }
 
 void DpStGraph::CalculateCostAt(const uint32_t c, const uint32_t r) {
-  //解析解析解析注意注意注意！
-  //函数1.先计算t s坐标为[c][r]的节点的obscost，   2.分成c=0，c=1,c=2 用dp算法遍历父节点的cost+edgecost，取最小的为父节点。之所以分类是因为在计算edgecost时 需要计算加速度和jerk，而这些量需要用到前一到两列的节点。
+  //本函数根据dp算法，找到坐标为(t=c,s=r)的点的父节点，并计算到达（c,r）的最小cost。
+
+  //函数 1.先计算t s坐标为[c][r]的节点的obstacle cost，   2.分成c=0，c=1,c=2 用dp算法遍历父节点的cost+edgecost，取最小的为父节点。之所以分类是因为在计算edgecost时 需要计算加速度和jerk，而这些量需要用到前一到两列的节点。
   auto& cost_cr = cost_table_[c][r];//cost_cr为坐标为c(t)，r(s)的StGraphPoint
-  //先计算当前点的obstacle_cost
+  //1.先计算当前点的obstacle_cost
   cost_cr.SetObstacleCost(dp_st_cost_.GetObstacleCost(cost_cr));
   if (cost_cr.obstacle_cost() > std::numeric_limits<float>::max()) {
     return;
   }
 
   const auto& cost_init = cost_table_[0][0];
+  //2.分类讨论，计算各个备选父节点到达该节点的总cost，并取最小者为父节点
   if (c == 0) {
     DCHECK_EQ(r, 0) << "Incorrect. Row should be 0 with col = 0. row: " << r;
     cost_cr.SetTotalCost(0.0);

@@ -310,7 +310,7 @@ bool StBoundary::GetUnblockSRange(const double curr_time, double* s_upper,
 }
 
 bool StBoundary::GetBoundarySRange(const double curr_time, double* s_upper,
-                                   double* s_lower) const {
+                                   double* s_lower) const {//本函数利用插值的方法（因为stboundary实质是离散点围成的polygon），t=curr_time时，平行四边形的上下边界点。
   CHECK_NOTNULL(s_upper);
   CHECK_NOTNULL(s_lower);
   if (curr_time < min_t_ || curr_time > max_t_) {
@@ -319,13 +319,13 @@ bool StBoundary::GetBoundarySRange(const double curr_time, double* s_upper,
 
   size_t left = 0;
   size_t right = 0;
-  if (!GetIndexRange(lower_points_, curr_time, &left, &right)) {
+  if (!GetIndexRange(lower_points_, curr_time, &left, &right)) {//获得curr_time在哪两个点之间，left和right为点的编号。
     AERROR << "Fail to get index range.";
     return false;
   }
   const double r = (curr_time - upper_points_[left].t()) /
                    (upper_points_[right].t() - upper_points_[left].t());
-
+//r为比例。
   *s_upper = upper_points_[left].s() +
              r * (upper_points_[right].s() - upper_points_[left].s());
   *s_lower = lower_points_[left].s() +
@@ -351,7 +351,7 @@ bool StBoundary::GetIndexRange(const std::vector<STPoint>& points,
     return false;
   }
   auto comp = [](const STPoint& p, const double t) { return p.t() < t; };
-  auto first_ge = std::lower_bound(points.begin(), points.end(), t, comp);
+  auto first_ge = std::lower_bound(points.begin(), points.end(), t, comp);//lower_bound为库二分查找函数，找到大于等于t的第一个位置
   size_t index = std::distance(points.begin(), first_ge);
   if (index == 0) {
     *left = *right = 0;
@@ -371,7 +371,7 @@ StBoundary StBoundary::GenerateStBoundary(
     return StBoundary();
   }
 
-  std::vector<std::pair<STPoint, STPoint>> point_pairs;
+  std::vector<std::pair<STPoint, STPoint>> point_pairs;//相同t 的 高低点对
   for (size_t i = 0; i < lower_points.size() && i < upper_points.size(); ++i) {
     point_pairs.emplace_back(
         STPoint(lower_points.at(i).s(), lower_points.at(i).t()),
