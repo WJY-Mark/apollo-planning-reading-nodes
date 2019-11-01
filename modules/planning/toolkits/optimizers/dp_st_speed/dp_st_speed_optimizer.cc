@@ -156,7 +156,7 @@ Status DpStSpeedOptimizer::Process(const SLBoundary& adc_sl_boundary,
   auto* debug = reference_line_info_->mutable_debug();
   STGraphDebug* st_graph_debug = debug->mutable_planning_data()->add_st_graph();
 
-  path_decision->EraseStBoundaries();//删掉前一时刻的stboundary
+  path_decision->EraseStBoundaries();//删掉前一时刻的stboundary（也可能是另一条车道）
   if (boundary_mapper.CreateStBoundary(path_decision).code() ==
       ErrorCode::PLANNING_ERROR) {
     const std::string msg =

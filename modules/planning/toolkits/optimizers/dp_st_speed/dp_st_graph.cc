@@ -47,7 +47,7 @@ namespace {
 constexpr float kInf = std::numeric_limits<float>::infinity();
 
 bool CheckOverlapOnDpStGraph(const std::vector<const StBoundary*>& boundaries,
-                             const StGraphPoint& p1, const StGraphPoint& p2) {
+                             const StGraphPoint& p1, const StGraphPoint& p2) {//本函数用于检验两个节点p1,p2的连线与stboundaries的相交情况
   const common::math::LineSegment2d seg(p1.point(), p2.point());
   for (const auto* boundary : boundaries) {
     if (boundary->boundary_type() == StBoundary::BoundaryType::KEEP_CLEAR) {
@@ -194,7 +194,7 @@ Status DpStGraph::CalculateTotalCost() {
         f.wait();
       }
     }
-
+//下面根据已经确定完cost和父节点的某个point，根据加速度极限和point的速度确定下一循环遍历的s的范围
     for (uint32_t r = next_lowest_row; r <= next_highest_row; ++r) {
       const auto& cost_cr = cost_table_[c][r];
       if (cost_cr.total_cost() < std::numeric_limits<float>::infinity()) {
@@ -275,10 +275,10 @@ void DpStGraph::CalculateCostAt(const uint32_t c, const uint32_t r) {
 
     if (CheckOverlapOnDpStGraph(st_graph_data_.st_boundaries(), cost_cr,
                                 cost_init)) {
-      return;//检验连线和stboundaries的相交情况
+      return;//检验连线和stboundaries的相交情况，若为真，说明该节点到达不了
     }
     cost_cr.SetTotalCost(cost_cr.obstacle_cost() + cost_init.total_cost() +
-                         CalculateEdgeCostForSecondCol(r, speed_limit));//EdgeCost 代表的是前一节点到当前节点的jerkcost，加速度cost等
+                         CalculateEdgeCostForSecondCol(r, speed_limit));//EdgeCost 代表的是前一节点到当前节点的连线边的jerkcost，加速度cost等
     cost_cr.SetPrePoint(cost_init);
     return;
   }
@@ -302,7 +302,7 @@ void DpStGraph::CalculateCostAt(const uint32_t c, const uint32_t r) {
 
       if (CheckOverlapOnDpStGraph(st_graph_data_.st_boundaries(), cost_cr,
                                   pre_col[r_pre])) {
-        continue;
+        continue;//检验连线和stboundaries的相交情况，若为真，说明该节点到达不了
       }
 
       const float cost = cost_cr.obstacle_cost() + pre_col[r_pre].total_cost() +
@@ -371,11 +371,11 @@ Status DpStGraph::RetrieveSpeedProfile(SpeedData* const speed_data) {
   }
 
   for (const auto& row : cost_table_) {
-    const StGraphPoint& cur_point = row.back();
-    if (!std::isinf(cur_point.total_cost()) &&
+    const StGraphPoint& cur_point = row.back();//ST图的上边界点 s=smax
+    if (!std::isinf(cur_point.total_cost()) && //StGraphPoint类的totalcost默认初始化为无穷，因此若没被dp算法遍历，说明到达不了，cost为无穷。
         cur_point.total_cost() < min_cost) {
-      best_end_point = &cur_point;
-      min_cost = cur_point.total_cost();
+      best_end_point = &cur_point;     //dp算法寻找最佳结束点。
+      min_cost = cur_point.total_cost(); 
     }
   }
 
@@ -387,7 +387,7 @@ Status DpStGraph::RetrieveSpeedProfile(SpeedData* const speed_data) {
 
   std::vector<SpeedPoint> speed_profile;
   const StGraphPoint* cur_point = best_end_point;
-  while (cur_point != nullptr) {
+  while (cur_point != nullptr) {  //从最佳结束点反向查找，最终得到最佳速度曲线。
     SpeedPoint speed_point;
     speed_point.set_s(cur_point->point().s());
     speed_point.set_t(cur_point->point().t());

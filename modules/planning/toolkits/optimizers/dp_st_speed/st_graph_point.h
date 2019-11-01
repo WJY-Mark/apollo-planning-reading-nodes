@@ -62,7 +62,7 @@ class StGraphPoint {
 
   float reference_cost_ = 0.0;
   float obstacle_cost_ = 0.0;
-  float total_cost_ = std::numeric_limits<float>::infinity();
+  float total_cost_ = std::numeric_limits<float>::infinity();//总cost初始化为无穷。
 };
 
 }  // namespace planning

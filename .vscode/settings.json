@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "mutex": "cpp",
+        "memory": "cpp",
+        "xstring": "cpp",
+        "xutility": "cpp",
+        "vector": "cpp"
+    }
+}
