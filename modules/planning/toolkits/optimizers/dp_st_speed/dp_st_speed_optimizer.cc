@@ -72,13 +72,13 @@ bool DpStSpeedOptimizer::SearchStGraph(
       boundaries.push_back(&obstacle->st_boundary());
     } else if (FLAGS_enable_side_vehicle_st_boundary &&
                (adc_sl_boundary_.start_l() > 2.0 ||
-                adc_sl_boundary_.end_l() < -2.0)) {
+                adc_sl_boundary_.end_l() < -2.0)) {//自车相对于refrence车道较远 在旁车道
       if (path_decision->Find(id)->reference_line_st_boundary().IsEmpty()) {
         continue;
       }
       ADEBUG << "obstacle " << id << " is NOT blocking.";
       auto st_boundary_copy =
-          path_decision->Find(id)->reference_line_st_boundary();
+          path_decision->Find(id)->reference_line_st_boundary();//考虑旁车道时，取reference st boundary 为复制，并去掉0~3.5秒的st mapping
       auto st_boundary = st_boundary_copy.CutOffByT(3.5);// 0~3.5秒的平行四边形mapping全部砍掉
       if (!st_boundary.IsEmpty()) {
         auto decision = obstacle->LongitudinalDecision();

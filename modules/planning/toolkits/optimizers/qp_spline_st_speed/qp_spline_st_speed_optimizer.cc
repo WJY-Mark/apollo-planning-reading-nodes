@@ -100,7 +100,7 @@ Status QpSplineStSpeedOptimizer::Process(const SLBoundary& adc_sl_boundary,
       boundaries.push_back(&obstacle->st_boundary());
     } else if (FLAGS_enable_side_vehicle_st_boundary &&
                (adc_sl_boundary.start_l() > 2.0 ||
-                adc_sl_boundary.end_l() < -2.0)) {
+                adc_sl_boundary.end_l() < -2.0)) { //若考虑旁车道
       if (obstacle->obstacle()->IsVirtual()) {
         continue;
       }
@@ -108,7 +108,7 @@ Status QpSplineStSpeedOptimizer::Process(const SLBoundary& adc_sl_boundary,
         continue;
       }
       auto st_boundary_copy =
-          path_decision->Find(id)->reference_line_st_boundary();
+          path_decision->Find(id)->reference_line_st_boundary();//取reference_line_st_boundary作为 copy，并去掉0~3.5秒的STmapping
       auto st_boundary = st_boundary_copy.CutOffByT(3.5);
       if (!st_boundary.IsEmpty()) {
         auto decision = obstacle->LongitudinalDecision();
