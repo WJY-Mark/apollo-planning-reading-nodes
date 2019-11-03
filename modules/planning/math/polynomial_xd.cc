@@ -44,7 +44,7 @@ void PolynomialXd::SetParams(const std::vector<double>& params) {
 
 const std::vector<double>& PolynomialXd::params() const { return params_; }
 
-PolynomialXd PolynomialXd::DerivedFrom(const PolynomialXd& base) {
+PolynomialXd PolynomialXd::DerivedFrom(const PolynomialXd& base) {//求导构造函数（如五次多项式求导得到四次多项式） 
   std::vector<double> params;
   if (base.order() <= 0) {
     params.clear();
@@ -58,8 +58,8 @@ PolynomialXd PolynomialXd::DerivedFrom(const PolynomialXd& base) {
 }
 
 PolynomialXd PolynomialXd::IntegratedFrom(const PolynomialXd& base,
-                                          const double intercept) {
-  std::vector<double> params;
+                                          const double intercept) {//积分构造函数
+  std::vector<double> params;//通过一个多项式的积分来构造另一个多项式（如四次多项式积分变成五次多项式）
   params.resize(base.params().size() + 1);
   params[0] = intercept;
   for (std::uint32_t i = 0; i < base.params().size(); ++i) {
@@ -68,12 +68,12 @@ PolynomialXd PolynomialXd::IntegratedFrom(const PolynomialXd& base,
   return PolynomialXd(params);
 }
 
-double PolynomialXd::operator()(const double value) const {
+double PolynomialXd::operator()(const double value) const {//反悔多项式在value处的值
   double result = 0.0;
   for (auto rit = params_.rbegin(); rit != params_.rend(); ++rit) {
     result *= value;
     result += (*rit);
-  }
+  }//  ((((a5x+a4)x+a3)x+a2)x+a1)x+a0
   return result;
 }
 

@@ -362,7 +362,7 @@ void DpStGraph::CalculateCostAt(const uint32_t c, const uint32_t r) {
 Status DpStGraph::RetrieveSpeedProfile(SpeedData* const speed_data) {
   float min_cost = std::numeric_limits<float>::infinity();
   const StGraphPoint* best_end_point = nullptr;
-  for (const StGraphPoint& cur_point : cost_table_.back()) {
+  for (const StGraphPoint& cur_point : cost_table_.back()) {//遍历ST图右边界 t=8s的节点们
     if (!std::isinf(cur_point.total_cost()) &&
         cur_point.total_cost() < min_cost) {
       best_end_point = &cur_point;
@@ -371,7 +371,7 @@ Status DpStGraph::RetrieveSpeedProfile(SpeedData* const speed_data) {
   }
 
   for (const auto& row : cost_table_) {
-    const StGraphPoint& cur_point = row.back();//ST图的上边界点 s=smax
+    const StGraphPoint& cur_point = row.back();//遍历ST图的上边界点 s=150m的节点们
     if (!std::isinf(cur_point.total_cost()) && //StGraphPoint类的totalcost默认初始化为无穷，因此若没被dp算法遍历，说明到达不了，cost为无穷。
         cur_point.total_cost() < min_cost) {
       best_end_point = &cur_point;     //dp算法寻找最佳结束点。

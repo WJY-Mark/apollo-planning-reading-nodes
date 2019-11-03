@@ -61,8 +61,8 @@ class Spline1d {
   uint32_t FindIndex(const double x) const;
 
  private:
-  std::vector<Spline1dSeg> splines_;
-  std::vector<double> x_knots_;
+  std::vector<Spline1dSeg> splines_;//多项式vector，每个Spline1dSeg都包含f(x),f'(x),f''(x),f'''(x)
+  std::vector<double> x_knots_;//节点vector
   uint32_t spline_order_;
 };
 

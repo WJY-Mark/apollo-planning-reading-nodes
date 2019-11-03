@@ -51,8 +51,8 @@ const Eigen::MatrixXd& AffineConstraint::constraint_boundary() const {
 
 bool AffineConstraint::AddConstraint(
     const Eigen::MatrixXd& constraint_matrix,
-    const Eigen::MatrixXd& constraint_boundary) {
-  if (constraint_matrix.rows() != constraint_boundary.rows()) {
+    const Eigen::MatrixXd& constraint_boundary) {//Ax<b  constraint_boundary是b,即一列
+  if (constraint_matrix.rows() != constraint_boundary.rows()) {//比较行数是否一致
     AERROR << "Fail to add constraint because constraint matrix rows != "
               "constraint boundary rows.";
     AERROR << "constraint matrix rows = " << constraint_matrix.rows();
@@ -65,7 +65,7 @@ bool AffineConstraint::AddConstraint(
     constraint_boundary_ = constraint_boundary;
     return true;
   }
-  if (constraint_matrix_.cols() != constraint_matrix.cols()) {
+  if (constraint_matrix_.cols() != constraint_matrix.cols()) {//比较原有约束矩阵A的列数是否和添加的A'列数一致
     AERROR
         << "constraint_matrix_ cols and constraint_matrix cols do not match.";
     AERROR << "constraint_matrix_.cols() = " << constraint_matrix_.cols();
@@ -82,7 +82,7 @@ bool AffineConstraint::AddConstraint(
   Eigen::MatrixXd n_boundary(
       constraint_boundary_.rows() + constraint_boundary.rows(), 1);
 
-  n_matrix << constraint_matrix_, constraint_matrix;
+  n_matrix << constraint_matrix_, constraint_matrix;//矩阵居然还可以这样初始化。
   n_boundary << constraint_boundary_, constraint_boundary;
   constraint_matrix_ = n_matrix;
   constraint_boundary_ = n_boundary;

@@ -44,7 +44,7 @@ double Spline1d::operator()(const double x) const {
 }
 
 double Spline1d::Derivative(const double x) const {
-  // zero order spline    // 0次的spline
+  // zero order spline    //0次的spline
   if (splines_.size() == 0) {
     return 0.0;
   }
@@ -91,7 +91,7 @@ const std::vector<double>& Spline1d::x_knots() const { return x_knots_; }
 
 uint32_t Spline1d::spline_order() const { return spline_order_; }
 
-uint32_t Spline1d::FindIndex(const double x) const {
+uint32_t Spline1d::FindIndex(const double x) const { //查找x在第几个knots之间  返回值返回0~x_knots_.size()-1
   auto upper_bound = std::upper_bound(x_knots_.begin() + 1, x_knots_.end(), x);
   const uint32_t dis = std::distance(x_knots_.begin(), upper_bound);
   if (dis < x_knots_.size()) {

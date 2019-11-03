@@ -38,6 +38,7 @@ class Spline1dSeg {
   ~Spline1dSeg() = default;
 
   void SetParams(const std::vector<double>& params);
+  //实现输入x，就返回x处的函数值，和一二三次导数值
   double operator()(const double x) const;
   double Derivative(const double x) const;
   double SecondOrderDerivative(const double x) const;
@@ -50,7 +51,7 @@ class Spline1dSeg {
 
  private:
   inline void SetSplineFunc(const PolynomialXd& spline_func);
-
+  //包含四个多项式，分别是  函数本身，一次导数，二次导数，三次导数
   PolynomialXd spline_func_;
   PolynomialXd derivative_;
   PolynomialXd second_order_derivative_;

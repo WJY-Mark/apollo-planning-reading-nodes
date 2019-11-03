@@ -57,18 +57,18 @@ void QpSplineStGraph::Init() {
   uint32_t num_spline =
       qp_st_speed_config_.qp_spline_config().number_of_discrete_graph_t() - 1;
   for (uint32_t i = 0; i <= num_spline; ++i) {
-    t_knots_.push_back(curr_t);
+    t_knots_.push_back(curr_t);//初始化knots的t（从0开始）
     curr_t += t_knots_resolution_;
   }
 
-  uint32_t num_evaluated_t = 10 * num_spline + 1;
+  uint32_t num_evaluated_t = 10 * num_spline + 1;//评估点数量 
 
   // init evaluated t positions
   curr_t = 0;
   t_evaluated_resolution_ =
       qp_st_speed_config_.total_time() / (num_evaluated_t - 1);
   for (uint32_t i = 0; i < num_evaluated_t; ++i) {
-    t_evaluated_.push_back(curr_t);
+    t_evaluated_.push_back(curr_t);//初始化evaluated点的t（从0开始）
     curr_t += t_evaluated_resolution_;
   }
 }
@@ -89,12 +89,12 @@ Status QpSplineStGraph::Search(const StGraphData& st_graph_data,
   for (auto boundary : st_graph_data.st_boundaries()) {
     if (boundary->IsPointInBoundary({0.0, 0.0}) ||
         (std::fabs(boundary->min_t()) < kBounadryEpsilon &&
-         std::fabs(boundary->min_s()) < kBounadryEpsilon)) {
+         std::fabs(boundary->min_s()) < kBounadryEpsilon)) {//特殊情况 急停
       speed_data->Clear();
       const double t_output_resolution = FLAGS_trajectory_time_min_interval;
       double time = 0.0;
       while (time < qp_st_speed_config_.total_time() + t_output_resolution) {
-        speed_data->AppendSpeedPoint(0.0, time, 0.0, 0.0, 0.0);
+        speed_data->AppendSpeedPoint(0.0, time, 0.0, 0.0, 0.0);//推进去一堆s=0
         time += t_output_resolution;
       }
       return Status::OK();
