@@ -395,7 +395,7 @@ bool Spline1dConstraint::AddSmoothConstraint() {
   }
   const uint32_t num_params = spline_order_ + 1;
   Eigen::MatrixXd equality_constraint = Eigen::MatrixXd::Zero(
-      x_knots_.size() - 2, (x_knots_.size() - 1) * num_params);
+      x_knots_.size() - 2, (x_knots_.size() - 1) * num_params);//不算左右两个边界点，因此行数为x_knots_.size() - 2，只保证各多项式曲线连续
   Eigen::MatrixXd equality_boundary =
       Eigen::MatrixXd::Zero(x_knots_.size() - 2, 1);
 
@@ -619,7 +619,7 @@ const AffineConstraint& Spline1dConstraint::equality_constraint() const {
   return equality_constraint_;
 }
 
-uint32_t Spline1dConstraint::FindIndex(const double x) const {
+uint32_t Spline1dConstraint::FindIndex(const double x) const {//二分查找x在哪两个knots节点之间
   auto upper_bound = std::upper_bound(x_knots_.begin() + 1, x_knots_.end(), x);
   return std::min(static_cast<uint32_t>(x_knots_.size() - 1),
                   static_cast<uint32_t>(upper_bound - x_knots_.begin())) -
@@ -632,7 +632,9 @@ bool Spline1dConstraint::FilterConstraints(
     std::vector<double>* const filtered_lower_bound_x,
     std::vector<double>* const filtered_lower_bound,
     std::vector<double>* const filtered_upper_bound_x,
-    std::vector<double>* const filtered_upper_bound) {
+    std::vector<double>* const filtered_upper_bound) {//此函数用于过滤掉不合理的约束，如x超过inf，或上下界超过inf。
+    //f(x)<upper,filtered_upper_bound_x代表x坐标,filtered_upper_bound代表upper
+    //f(x)<lower,filtered_lower_bound_x代表x坐标,filtered_lower_bound代表upper
   filtered_lower_bound->clear();
   filtered_upper_bound->clear();
   filtered_lower_bound_x->clear();
@@ -670,7 +672,7 @@ bool Spline1dConstraint::FilterConstraints(
 
 void Spline1dConstraint::GeneratePowerX(
     const double x, const uint32_t order,
-    std::vector<double>* const power_x) const {
+    std::vector<double>* const power_x) const {//x=3 order=4 power_x=[1 3 9 27]
   double cur_x = 1.0;
   for (uint32_t i = 0; i < order; ++i) {
     power_x->push_back(cur_x);
