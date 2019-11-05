@@ -135,6 +135,11 @@ class Spline1dConstraint {
                             const double val, const double range);
 
  private:
+ //多项式模型（五次）：p0+p1(x-x0)+p2(x-x0)^2+p3(x-x0)^3+p4(x-x0)^4+p5(x-x0)^5  x区间[x0,x1)
+ //p=[p0,p1,p2,p3,p4,p5]^T  （待求）
+ //X(0)=[1,(x-x0),(x-x0)^2,(x-x0)^3,(x-x0)^4,(x-x0)^5]  0阶导数
+ //X(1)=[0,1,2(x-x0),3(x-x0)^2,4(x-x0)^3,5(x-x0)^4]  1阶导数
+ //二阶 三阶导数同理  详见EMplanner论文的附录
   AffineConstraint inequality_constraint_;
   AffineConstraint equality_constraint_;
   std::vector<double> x_knots_;

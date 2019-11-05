@@ -32,7 +32,11 @@ namespace planning {
 using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
-
+ //多项式模型（五次）：p0+p1(x-x0)+p2(x-x0)^2+p3(x-x0)^3+p4(x-x0)^4+p5(x-x0)^5  x区间[x0,x1)
+ //p=[p0,p1,p2,p3,p4,p5]^T  （待求）
+ //X(0)=[1,(x-x0),(x-x0)^2,(x-x0)^3,(x-x0)^4,(x-x0)^5]  0阶导数
+ //X(1)=[0,1,2(x-x0),3(x-x0)^2,4(x-x0)^3,5(x-x0)^4]  1阶导数
+ //二阶 三阶导数同理  详见EMplanner论文的附录
 Spline1dConstraint::Spline1dConstraint(const Spline1d& pss)
     : Spline1dConstraint(pss.x_knots(), pss.spline_order()) {}
 
@@ -86,6 +90,7 @@ bool Spline1dConstraint::AddBoundary(const std::vector<double>& x_coord,
     uint32_t index = FindIndex(filtered_lower_bound_x[i]);
 
     const double corrected_x = filtered_lower_bound_x[i] - x_knots_[index];
+    //corrected_x=x-xknots[index]，即x在所在的多项式的区间内，相对于其左区间的相对量。
     double coef = 1.0;
     for (uint32_t j = 0; j < num_params; ++j) {
       inequality_constraint(i, j + index * num_params) = coef;
@@ -404,7 +409,10 @@ bool Spline1dConstraint::AddSmoothConstraint() {
     double right_coef = -1.0;
     const double x_left = x_knots_[i + 1] - x_knots_[i];
     const double x_right = 0.0;
-    for (uint32_t j = 0; j < num_params; ++j) {
+    for (uint32_t j = 0; j < num_params; ++j) { 
+      //核心代码 以三次多项式为例，节点在（x0,x1,x2……）第一行约束代表在x1处两个三次多项式连续
+      //矩阵第一行为 [1,(x1-x0),(x1-x0)^2,(x1-x0)^3,-1,0,……0]
+      //矩阵第二行为 [0,0,0,0,1,(x2-x1),(x2-x1)^2,(x2-x1)^3,-1,0,……0]
       equality_constraint(i, num_params * i + j) = left_coef;
       equality_constraint(i, num_params * (i + 1) + j) = right_coef;
       left_coef *= x_left;
@@ -416,17 +424,20 @@ bool Spline1dConstraint::AddSmoothConstraint() {
 }
 
 bool Spline1dConstraint::AddDerivativeSmoothConstraint() {
-  if (x_knots_.size() < 3) {
+  if (x_knots_.size() < 3) {//不算左右两个边界点，因此行数为x_knots_.size() - 2，保证各多项式曲线 函数连续，一阶导数连续
     return false;
   }
 
-  const uint32_t n_constraint = (x_knots_.size() - 2) * 2;
+  const uint32_t n_constraint = (x_knots_.size() - 2) * 2;//约束包括函数连续和一阶导数连续，因此约束个数乘2
   const uint32_t num_params = spline_order_ + 1;
   Eigen::MatrixXd equality_constraint =
       Eigen::MatrixXd::Zero(n_constraint, (x_knots_.size() - 1) * num_params);
   Eigen::MatrixXd equality_boundary = Eigen::MatrixXd::Zero(n_constraint, 1);
 
-  for (uint32_t i = 0; i < n_constraint; i += 2) {
+  for (uint32_t i = 0; i < n_constraint; i += 2) {//核心程序，没啥可讲的 要想看懂需要自己推一下公式，类似AddSmoothConstraint,
+  //以i=0为例，矩阵第一行为[1,(x1-x0),(x1-x0)^2,(x1-x0)^3,-1,0……0]
+  ////////////矩阵第二行为[0,1,2(x1-x0),3(x1-x0)^2,0,-1……0]
+  //下面程序i为行数，j为列数，各个元素的初始化顺序为[0,0], [0,1],[1,1] ,[0,2],[1,2] [0,3],[1,3]……
     double left_coef = 1.0;
     double right_coef = -1.0;
     double left_dcoef = 1.0;
@@ -452,11 +463,11 @@ bool Spline1dConstraint::AddDerivativeSmoothConstraint() {
 }
 
 bool Spline1dConstraint::AddSecondDerivativeSmoothConstraint() {
-  if (x_knots_.size() < 3) {
+  if (x_knots_.size() < 3) {//参考AddDerivativeSmoothConstraint 
     return false;
   }
 
-  const uint32_t n_constraint = (x_knots_.size() - 2) * 3;
+  const uint32_t n_constraint = (x_knots_.size() - 2) * 3;//二阶连续必须一阶导数和零阶都连续,因此乘3
   const uint32_t num_params = spline_order_ + 1;
   Eigen::MatrixXd equality_constraint =
       Eigen::MatrixXd::Zero(n_constraint, (x_knots_.size() - 1) * num_params);
