@@ -78,8 +78,8 @@ class Spline1dKernel {
   uint32_t FindIndex(const double x) const;
 
  private:
-  Eigen::MatrixXd kernel_matrix_;
-  Eigen::MatrixXd offset_;
+  Eigen::MatrixXd kernel_matrix_; //参考EMplanner论文  这个是附录中的X(0) [加粗] 
+  Eigen::MatrixXd offset_;//这个是 一列  对应附录中的c [加粗]
   std::vector<double> x_knots_;
   uint32_t spline_order_;
   uint32_t total_params_;
