@@ -487,7 +487,7 @@ Status QpSplineStGraph::GetSConstraintByTime(
     double s_upper = 0.0;
     double s_lower = 0.0;
 
-    if (!boundary->GetUnblockSRange(time, &s_upper, &s_lower)) {
+    if (!boundary->GetUnblockSRange(time, &s_upper, &s_lower)) {//用插值的方法获得t=time时s的无障碍物上下边界。（会用到每个障碍物的决策标签，如超车则s_lower为平行四边形的上边界，跟车则supper为平行四边形的下边界）
       continue;
     }
 
@@ -495,6 +495,7 @@ Status QpSplineStGraph::GetSConstraintByTime(
         boundary->boundary_type() == StBoundary::BoundaryType::FOLLOW ||
         boundary->boundary_type() == StBoundary::BoundaryType::YIELD) {
       *s_upper_bound = std::fmin(*s_upper_bound, s_upper);
+      //这里又对标签判断一次 一定要分清s_upper_bound和s_upper, s_upper为某个障碍物所形成的上边界，而s_upper_bound为最终用于qp优化的s上边界。例如同一时刻对前方两个障碍物A，B都进行超车，则s_upper_bound=max(s_upper_A,s_upper_B)
     } else if (boundary->boundary_type() ==
                StBoundary::BoundaryType::OVERTAKE) {
       *s_lower_bound = std::fmax(*s_lower_bound, s_lower);

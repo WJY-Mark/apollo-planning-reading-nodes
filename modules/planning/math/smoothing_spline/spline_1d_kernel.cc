@@ -42,7 +42,7 @@ Spline1dKernel::Spline1dKernel(const std::vector<double>& x_knots,
   offset_ = Eigen::MatrixXd::Zero(total_params_, 1);
 }
 
-void Spline1dKernel::AddRegularization(const double regularized_param) {
+void Spline1dKernel::AddRegularization(const double regularized_param) {//增加Regularization，防止过拟合，实际就是 让kernel_matrix_+一个对角矩阵
   Eigen::MatrixXd id_matrix =
       Eigen::MatrixXd::Identity(kernel_matrix_.rows(), kernel_matrix_.cols());
   kernel_matrix_ += 2.0 * id_matrix * regularized_param;
@@ -144,23 +144,23 @@ bool Spline1dKernel::AddReferenceLineKernelMatrix(
     const double weight) {
   if (ref_x.size() != x_coord.size()) {
     return false;
-  }
+  }//x_coord为参考线的x坐标 ref_x为对应的g(x)值
 
   const uint32_t num_params = spline_order_ + 1;
-  for (uint32_t i = 0; i < x_coord.size(); ++i) {
+  for (uint32_t i = 0; i < x_coord.size(); ++i) {//矩形叠加法求积分，遍历所有refrence点求积分。
     double cur_index = FindIndex(x_coord[i]);
-    double cur_rel_x = x_coord[i] - x_knots_[cur_index];
+    double cur_rel_x = x_coord[i] - x_knots_[cur_index];//对应文中附录的 x~ 
     // update offset
     double offset_coef = -2.0 * ref_x[i] * weight;
     for (uint32_t j = 0; j < num_params; ++j) {
-      offset_(j + cur_index * num_params, 0) += offset_coef;
+      offset_(j + cur_index * num_params, 0) += offset_coef;//矩形叠加法求积分，没乘步长，步长算在weight里面了。
       offset_coef *= cur_rel_x;
     }
     // update kernel matrix
-    Eigen::MatrixXd ref_kernel(num_params, num_params);
+    Eigen::MatrixXd ref_kernel(num_params, num_params);//每次只更新一个block
 
     double cur_x = 1.0;
-    std::vector<double> power_x;
+    std::vector<double> power_x;//存储x~的乘方，减少重复计算，0次方即power_x[0]
     for (uint32_t n = 0; n + 1 < 2 * num_params; ++n) {
       power_x.emplace_back(cur_x);
       cur_x *= cur_rel_x;
@@ -173,7 +173,8 @@ bool Spline1dKernel::AddReferenceLineKernelMatrix(
     }
 
     kernel_matrix_.block(cur_index * num_params, cur_index * num_params,
-                         num_params, num_params) += weight * ref_kernel;
+                         num_params, num_params) += weight * ref_kernel;//block操作 a.block(i,j,m,n)为a矩阵中起始于i，j，mxn的block，可作为左值和右值。
+                         //kernel_matrix_为n*n对角矩阵,n为knots节点数目，每个对角元素为一个block，每个block为(spline_order-1)*(spline_order-1)
   }
   return true;
 }

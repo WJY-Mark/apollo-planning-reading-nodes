@@ -269,7 +269,7 @@ void StBoundary::SetCharacteristicLength(const double characteristic_length) {
 }
 // 这个函数是用来干什么的？
 bool StBoundary::GetUnblockSRange(const double curr_time, double* s_upper,
-                                  double* s_lower) const {
+                                  double* s_lower) const {//用插值的方法，求s的unblock range,用于qp优化时确定约束。 类似GetBoundarySRange（用插值的方法，求平行四边形中任意t的上下s界）
   CHECK_NOTNULL(s_upper);
   CHECK_NOTNULL(s_lower);
 
@@ -282,7 +282,7 @@ bool StBoundary::GetUnblockSRange(const double curr_time, double* s_upper,
   size_t left = 0;
   size_t right = 0;
   if (!GetIndexRange(lower_points_, curr_time, &left, &right)) {
-    AERROR << "Fail to get index range.";
+    AERROR << "Fail to get index range.";//获得curr_time在哪两个点之间，left和right为点的编号。
     return false;
   }
   const double r = (curr_time - upper_points_[left].t()) /
@@ -290,14 +290,14 @@ bool StBoundary::GetUnblockSRange(const double curr_time, double* s_upper,
 
   double upper_cross_s =
       upper_points_[left].s() +
-      r * (upper_points_[right].s() - upper_points_[left].s());
+      r * (upper_points_[right].s() - upper_points_[left].s());//插值
   double lower_cross_s =
       lower_points_[left].s() +
       r * (lower_points_[right].s() - lower_points_[left].s());
 
   if (boundary_type_ == BoundaryType::STOP ||
       boundary_type_ == BoundaryType::YIELD ||
-      boundary_type_ == BoundaryType::FOLLOW) {
+      boundary_type_ == BoundaryType::FOLLOW) {//根据决策类型确定上下界
     *s_upper = lower_cross_s;
   } else if (boundary_type_ == BoundaryType::OVERTAKE) {
     *s_lower = std::fmax(*s_lower, upper_cross_s);
