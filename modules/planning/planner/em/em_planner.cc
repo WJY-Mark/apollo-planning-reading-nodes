@@ -33,7 +33,7 @@ Status EMPlanner::Plan(const TrajectoryPoint& planning_start_point,
   scenario_manager_.Update(planning_start_point, *frame);
   scenario_ = scenario_manager_.mutable_scenario();
   scenario_->Init(config_);  // init will be skipped if it was called before
-  return scenario_->Process(planning_start_point, frame);
+  return scenario_->Process(planning_start_point, frame);//!!!!!!!!!!!!!!!!!!!!从这直接看\modules\planning\scenarios\lane_follow\lane_follow_scenario.cc
 }
 
 }  // namespace planning

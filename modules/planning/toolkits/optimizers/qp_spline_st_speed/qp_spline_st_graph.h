@@ -121,7 +121,7 @@ class QpSplineStGraph {
   std::vector<double> t_evaluated_;
 
   // reference line kernel
-  std::vector<double> cruise_;
+  std::vector<double> cruise_;//里面存放了n个total_path_length（即ST图的S轴最大值150m）
 
   // reference st points from dp optimizer
   std::vector<common::SpeedPoint> reference_dp_speed_points_;

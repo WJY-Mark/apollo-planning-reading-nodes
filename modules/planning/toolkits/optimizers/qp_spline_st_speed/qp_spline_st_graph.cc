@@ -163,7 +163,7 @@ Status QpSplineStGraph::AddConstraint(
     return Status(ErrorCode::PLANNING_ERROR, msg);
   }
 
-  if (!constraint->AddPointDerivativeConstraint(0.0, init_point_.v())) {
+  if (!constraint->AddPointDerivativeConstraint(0.0, init_point_.v())) {//起点速度约束
     const std::string msg = "add st start point velocity constraint failed!";
     AERROR << msg;
     return Status(ErrorCode::PLANNING_ERROR, msg);
@@ -187,7 +187,7 @@ Status QpSplineStGraph::AddConstraint(
   std::vector<double> s_upper_bound;
   std::vector<double> s_lower_bound;
 
-  for (const double curr_t : t_evaluated_) {
+  for (const double curr_t : t_evaluated_) {//避障约束，仅在t_evaluated评估点处添加s上下界约束，不与平行四边形相撞。
     double lower_s = 0.0;
     double upper_s = 0.0;
     GetSConstraintByTime(boundaries, curr_t,
@@ -201,7 +201,7 @@ Status QpSplineStGraph::AddConstraint(
 
   DCHECK_EQ(t_evaluated_.size(), s_lower_bound.size());
   DCHECK_EQ(t_evaluated_.size(), s_upper_bound.size());
-  if (!constraint->AddBoundary(t_evaluated_, s_lower_bound, s_upper_bound)) {
+  if (!constraint->AddBoundary(t_evaluated_, s_lower_bound, s_upper_bound)) {//避障约束，仅在t_evaluated评估点处添加s上下界约束，不与平行四边形相撞。
     const std::string msg = "Fail to apply distance constraints.";
     AERROR << msg;
     return Status(ErrorCode::PLANNING_ERROR, msg);
@@ -230,7 +230,7 @@ Status QpSplineStGraph::AddConstraint(
     }
   }
 
-  if (!constraint->AddDerivativeBoundary(t_evaluated_, speed_lower_bound,
+  if (!constraint->AddDerivativeBoundary(t_evaluated_, speed_lower_bound,//速度约束，也是只在评估点处加约束
                                          speed_upper_bound)) {
     const std::string msg = "Fail to apply speed constraints.";
     AERROR << msg;
@@ -253,7 +253,7 @@ Status QpSplineStGraph::AddConstraint(
     if (boundary->boundary_type() == StBoundary::BoundaryType::FOLLOW) {
       has_follow = true;
       delta_s = std::fmin(
-          delta_s, boundary->min_s() - fabs(boundary->characteristic_length()));
+          delta_s, boundary->min_s() - fabs(boundary->characteristic_length()));//这里用到了characteristic_length,将其和平行四边形的min_s比较，判断是否安全，若delta_s<0,则不够安全
     }
   }
   if (FLAGS_enable_follow_accel_constraint && has_follow && delta_s < 0.0) {
@@ -334,11 +334,11 @@ Status QpSplineStGraph::Solve() {
              : Status(ErrorCode::PLANNING_ERROR, "QpSplineStGraph::solve");
 }
 
-Status QpSplineStGraph::AddCruiseReferenceLineKernel(const double weight) {
+Status QpSplineStGraph::AddCruiseReferenceLineKernel(const double weight) { 
   auto* spline_kernel = spline_generator_->mutable_spline_kernel();
   double dist_ref = qp_st_speed_config_.total_path_length();
   for (uint32_t i = 0; i < t_evaluated_.size(); ++i) {
-    cruise_.push_back(dist_ref);
+    cruise_.push_back(dist_ref);//以终点s（即s轴的最大值150m）作为reference，鼓励车走完全程
   }
   if (st_graph_debug_) {
     auto kernel_cruise_ref = st_graph_debug_->mutable_kernel_cruise_ref();
@@ -367,8 +367,8 @@ Status QpSplineStGraph::AddCruiseReferenceLineKernel(const double weight) {
 
 Status QpSplineStGraph::AddFollowReferenceLineKernel(
     const std::vector<const StBoundary*>& boundaries, const double weight) {
-  auto* spline_kernel = spline_generator_->mutable_spline_kernel();
-  std::vector<double> ref_s;
+  auto* spline_kernel = spline_generator_->mutable_spline_kernel();//本核矩阵以前车后面一段距离为reference s
+  std::vector<double> ref_s;     //follow的参考线在前方障碍物后方的一段距离
   std::vector<double> filtered_evaluate_t;
   for (size_t i = 0; i < t_evaluated_.size(); ++i) {
     const double curr_t = t_evaluated_[i];
@@ -388,7 +388,7 @@ Status QpSplineStGraph::AddFollowReferenceLineKernel(
         s_min = std::min(
             s_min,
             s_upper - boundary->characteristic_length() -
-                qp_st_speed_config_.qp_spline_config().follow_drag_distance());
+                qp_st_speed_config_.qp_spline_config().follow_drag_distance());//参考线s设置在前方障碍物后方的一段距离，另外，若对前方多个障碍物都follow，则取最小的s减去一小段距离作为最终的reference。
       }
     }
     if (success && s_min < cruise_[i]) {
@@ -418,7 +418,7 @@ Status QpSplineStGraph::AddFollowReferenceLineKernel(
 
 Status QpSplineStGraph::AddYieldReferenceLineKernel(
     const std::vector<const StBoundary*>& boundaries, const double weight) {
-  auto* spline_kernel = spline_generator_->mutable_spline_kernel();
+  auto* spline_kernel = spline_generator_->mutable_spline_kernel();//类似于AddFollowReferenceKernel
   std::vector<double> ref_s;
   std::vector<double> filtered_evaluate_t;
   for (size_t i = 0; i < t_evaluated_.size(); ++i) {
@@ -462,7 +462,7 @@ Status QpSplineStGraph::AddYieldReferenceLineKernel(
   return Status::OK();
 }
 
-bool QpSplineStGraph::AddDpStReferenceKernel(const double weight) const {
+bool QpSplineStGraph::AddDpStReferenceKernel(const double weight) const {//以评估点处的dp结果作为refrence
   std::vector<double> t_pos;
   std::vector<double> s_pos;
   for (auto point : reference_dp_speed_points_) {

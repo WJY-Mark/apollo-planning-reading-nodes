@@ -154,7 +154,7 @@ Status LaneFollowScenario::Process(const TrajectoryPoint& planning_start_point,
   bool disable_low_priority_path = false;            // 禁止低优先级的路径
   auto status =
       Status(ErrorCode::PLANNING_ERROR, "reference line not drivable");    // 初始化状态为Planning错误
-  for (auto& reference_line_info : frame->reference_line_info()) {         // 一个frame里面的中心参考线
+  for (auto& reference_line_info : frame->reference_line_info()) {         // 对frame所有参考线进行遍历，针对每个车道中心线用emplanner求最优轨迹。
     if (disable_low_priority_path) {
       reference_line_info.SetDrivable(false);
     }
@@ -184,7 +184,7 @@ Status LaneFollowScenario::PlanOnReferenceLine(
     reference_line_info->AddCost(kStraightForwardLineCost);     // 增加代价， kStraightForwardLineCost为10， 最开始为0
   }
   ADEBUG << "planning start point:" << planning_start_point.DebugString();
-  auto* heuristic_speed_data = reference_line_info->mutable_speed_data();  // 启发式的速度
+  auto* heuristic_speed_data = reference_line_info->mutable_speed_data();  // 启发式的速度       以上一时刻的速度作为启发式速度
   auto speed_profile = speed_profile_generator_.GenerateInitSpeedProfile(
       planning_start_point, reference_line_info);
   if (speed_profile.empty()) {
