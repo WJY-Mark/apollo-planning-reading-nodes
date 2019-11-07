@@ -170,7 +170,7 @@ Status QpSplineStGraph::AddConstraint(
   }
 
   // monotone constraint
-  if (!constraint->AddMonotoneInequalityConstraint(t_evaluated_)) {
+  if (!constraint->AddMonotoneInequalityConstraint(t_evaluated_)) {//保证s(t)是单调递增的，具体实现是让s(t)曲线在评估点（比较密）处是单调递增即可。
     const std::string msg = "add monotone inequality constraint failed!";
     AERROR << msg;
     return Status(ErrorCode::PLANNING_ERROR, msg);
