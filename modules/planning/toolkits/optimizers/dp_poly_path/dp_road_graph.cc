@@ -243,7 +243,7 @@ void DPRoadGraph::UpdateNode(const std::list<DPRoadGraphNode> &prev_nodes,
     const float init_ddl = init_frenet_frame_point_.ddl();
     QuinticPolynomialCurve1d curve(init_sl_point_.l(), init_dl, init_ddl,
                                    cur_node->sl_point.l(), 0.0, 0.0,
-                                   cur_node->sl_point.s() - init_sl_point_.s());//五次多项式，六个条件，认为重点侧向速度加速度=0。
+                                   cur_node->sl_point.s() - init_sl_point_.s());//五次多项式，六个条件，认为终点侧向速度加速度=0。
     if (!IsValidCurve(curve)) {
       return;
     }
