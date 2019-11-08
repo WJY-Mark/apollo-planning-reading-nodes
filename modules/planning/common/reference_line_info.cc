@@ -387,9 +387,9 @@ bool ReferenceLineInfo::CombinePathAndSpeedProfile(
   }
   for (double cur_rel_time = 0.0; cur_rel_time < speed_data_.TotalTime();
        cur_rel_time += (cur_rel_time < kDenseTimeSec ? kDenseTimeResoltuion
-                                                     : kSparseTimeResolution)) {
+                                                     : kSparseTimeResolution)) {//varied resolution 
     common::SpeedPoint speed_point;
-    if (!speed_data_.EvaluateByTime(cur_rel_time, &speed_point)) {
+    if (!speed_data_.EvaluateByTime(cur_rel_time, &speed_point)) {//插值找到cur_rel_time的speed_point
       AERROR << "Fail to get speed point with relative time " << cur_rel_time;
       return false;
     }
@@ -398,7 +398,7 @@ bool ReferenceLineInfo::CombinePathAndSpeedProfile(
       break;
     }
     common::PathPoint path_point;
-    if (!path_data_.GetPathPointWithPathS(speed_point.s(), &path_point)) {
+    if (!path_data_.GetPathPointWithPathS(speed_point.s(), &path_point)) {//插值得到path_point
       AERROR << "Fail to get path data with s " << speed_point.s()
              << "path total length " << path_data_.discretized_path().Length();
       return false;

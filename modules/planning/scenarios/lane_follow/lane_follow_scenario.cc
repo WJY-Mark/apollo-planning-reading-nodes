@@ -58,9 +58,9 @@ using common::math::Vec2d;                               // 二维向量, 二维
 using common::time::Clock;                               // 时钟
 
 namespace {
-constexpr double kPathOptimizationFallbackClost = 2e4;   // 路径优化反馈代价2的四次方
-constexpr double kSpeedOptimizationFallbackClost = 2e4;  // 速度优化的反馈代价
-constexpr double kStraightForwardLineCost = 10.0;        // 直线的成本代价是10
+constexpr double kPathOptimizationFallbackClost = 2e4;   // 路径优化反馈代价2的四次方 找不到路径的惩罚
+constexpr double kSpeedOptimizationFallbackClost = 2e4;  // 速度优化的反馈代价  找不到速度的惩罚
+constexpr double kStraightForwardLineCost = 10.0;        // 直线的成本代价是10  直行的惩罚
 }  // namespace
 
 void LaneFollowScenario::RegisterTasks() {
@@ -164,7 +164,7 @@ Status LaneFollowScenario::Process(const TrajectoryPoint& planning_start_point,
     auto cur_status =
         PlanOnReferenceLine(planning_start_point, frame, &reference_line_info);  // 在道路中心线的基础上做planning
     if (cur_status.ok() && reference_line_info.IsDrivable()) {
-      has_drivable_reference_line = true;
+      has_drivable_reference_line = true; //有任意一条车道是drivable则为true
       if (FLAGS_prioritize_change_lane &&
           reference_line_info.IsChangeLanePath() &&
           reference_line_info.Cost() < kStraightForwardLineCost) {
@@ -180,7 +180,7 @@ Status LaneFollowScenario::Process(const TrajectoryPoint& planning_start_point,
 Status LaneFollowScenario::PlanOnReferenceLine(
     const TrajectoryPoint& planning_start_point, Frame* frame,  // 起点， 框
     ReferenceLineInfo* reference_line_info) {                   // 输出, 中心参考线
-  if (!reference_line_info->IsChangeLanePath()) {               // 参考线是否改变了路径
+  if (!reference_line_info->IsChangeLanePath()) {               // 参考线是否改变了路径，是否换道
     reference_line_info->AddCost(kStraightForwardLineCost);     // 增加代价， kStraightForwardLineCost为10， 最开始为0
   }
   ADEBUG << "planning start point:" << planning_start_point.DebugString();
@@ -196,7 +196,7 @@ Status LaneFollowScenario::PlanOnReferenceLine(
 
   auto ret = Status::OK();
 
-  for (auto& optimizer : tasks_) {                        // tasks_里面全是优化器
+  for (auto& optimizer : tasks_) {                        // tasks_里面全是优化器,开始执行 DP_path,path_decider,DP_Speed,Speed_Decider,QP_Speed  这一系列EMplanner优化，最终改变的实际是refrence_line_info当中的成员：path_data_,speed_data_
     const double start_timestamp = Clock::NowInSeconds(); // 开始的时间戳
     ret = optimizer->Execute(frame, reference_line_info); // 开始执行frame
     if (!ret.ok()) {
@@ -216,26 +216,26 @@ Status LaneFollowScenario::PlanOnReferenceLine(
 
   RecordObstacleDebugInfo(reference_line_info);
 
-  if (reference_line_info->path_data().Empty()) {
+  if (reference_line_info->path_data().Empty()) {//若在这条车道 没找到path
     ADEBUG << "Path fallback.";
     GenerateFallbackPathProfile(reference_line_info,
-                                reference_line_info->mutable_path_data());    // 获取反馈的路径
-    reference_line_info->AddCost(kPathOptimizationFallbackClost);
+                                reference_line_info->mutable_path_data());    // 产生一条备用的path
+    reference_line_info->AddCost(kPathOptimizationFallbackClost);//为这条车道增加惩罚20000
     reference_line_info->set_trajectory_type(ADCTrajectory::PATH_FALLBACK);
   }
 
-  if (!ret.ok() || reference_line_info->speed_data().Empty()) {
+  if (!ret.ok() || reference_line_info->speed_data().Empty()) {//若在这条车道 没找到速度曲线
     ADEBUG << "Speed fallback.";
 
     *reference_line_info->mutable_speed_data() =
-        speed_profile_generator_.GenerateFallbackSpeedProfile();
-    reference_line_info->AddCost(kSpeedOptimizationFallbackClost);
+        speed_profile_generator_.GenerateFallbackSpeedProfile();//产生一条备用速度曲线
+    reference_line_info->AddCost(kSpeedOptimizationFallbackClost);//增加惩罚20000
     reference_line_info->set_trajectory_type(ADCTrajectory::SPEED_FALLBACK);
   }
 
   reference_line_info->set_trajectory_type(ADCTrajectory::NORMAL);
   DiscretizedTrajectory trajectory;
-  if (!reference_line_info->CombinePathAndSpeedProfile(
+  if (!reference_line_info->CombinePathAndSpeedProfile(//将speed profile和path结合起来
           planning_start_point.relative_time(),
           planning_start_point.path_point().s(), &trajectory)) {
     std::string msg("Fail to aggregate planning trajectory.");
@@ -257,7 +257,7 @@ Status LaneFollowScenario::PlanOnReferenceLine(
   }
 
   for (const auto* path_obstacle :
-       reference_line_info->path_decision()->path_obstacles().Items()) {
+       reference_line_info->path_decision()->path_obstacles().Items()) {//遍历所有障碍物
     if (path_obstacle->obstacle()->IsVirtual()) {
       continue;
     }
@@ -278,7 +278,7 @@ Status LaneFollowScenario::PlanOnReferenceLine(
       }
       if (add_stop_obstacle_cost) {
         constexpr double kRefrenceLineStaticObsCost = 1e3;
-        reference_line_info->AddCost(kRefrenceLineStaticObsCost);
+        reference_line_info->AddCost(kRefrenceLineStaticObsCost);//因障碍物被逼停 增加惩罚1000
       }
     }
   }
@@ -297,19 +297,19 @@ Status LaneFollowScenario::PlanOnReferenceLine(
   return Status::OK();
 }
 
-void LaneFollowScenario::GenerateFallbackPathProfile(
+void LaneFollowScenario::GenerateFallbackPathProfile(//用于没找到path的情况下找到一条备用path
     const ReferenceLineInfo* reference_line_info, PathData* path_data) {
   auto adc_point = EgoInfo::instance()->start_point();
-  double adc_s = reference_line_info->AdcSlBoundary().end_s();
+  double adc_s = reference_line_info->AdcSlBoundary().end_s();//返回一个SLBoundary，成员包含start_s,start_l,end_s,end_l
   const double max_s = 150.0;
-  const double unit_s = 1.0;
+  const double unit_s = 1.0;//s的分辨率
 
   // projection of adc point onto reference line
   const auto& adc_ref_point =
-      reference_line_info->reference_line().GetReferencePoint(adc_s);
+      reference_line_info->reference_line().GetReferencePoint(adc_s);//自车在参考线的投影点
 
   DCHECK(adc_point.has_path_point());
-  const double dx = adc_point.path_point().x() - adc_ref_point.x();
+  const double dx = adc_point.path_point().x() - adc_ref_point.x();//adc_point.path_point是自车的坐标点，dx，dy即自车全局坐标点 与 自车在参考线投影点 之间的xy差值
   const double dy = adc_point.path_point().y() - adc_ref_point.y();
 
   std::vector<common::PathPoint> path_points;       // 路径上的点
@@ -318,12 +318,12 @@ void LaneFollowScenario::GenerateFallbackPathProfile(
         reference_line_info->reference_line().GetReferencePoint(adc_s);
     common::PathPoint path_point = common::util::MakePathPoint(
         ref_point.x() + dx, ref_point.y() + dy, 0.0, ref_point.heading(),
-        ref_point.kappa(), ref_point.dkappa(), 0.0);
+        ref_point.kappa(), ref_point.dkappa(), 0.0);//生成备用path，即按照当前的dx dy一直沿着这个车道走，
     path_point.set_s(s);
 
     path_points.push_back(std::move(path_point));
   }
-  path_data->SetDiscretizedPath(DiscretizedPath(std::move(path_points)));   // 把path的点转换为离散的path
+  path_data->SetDiscretizedPath(DiscretizedPath(std::move(path_points)));   //把path的点转换为离散的path
 }
 
 SLPoint LaneFollowScenario::GetStopSL(
